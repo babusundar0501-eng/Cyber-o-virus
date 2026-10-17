@@ -1,0 +1,27 @@
+{
+  "name": "sovereign-nextgen-edr-suite",
+  "version": "6.5.0",
+  "description": "Enterprise-Grade EDR Antivirus Suite featuring System-Wide Real-Time Interception, Active Registry Guards, Anti-Hacker Dual-Process Resiliency, and On-Demand Shannon Entropy Deep Scanning.",
+  "main": "AbsoluteSovereign.js",
+  "scripts": {
+    "start": "node AbsoluteSovereign.js",
+    "scan": "node ManualScanner.js",
+    "watchdog": "node WatchdogGuard.js",
+    "compile-core": "pkg AbsoluteSovereign.js --target win-x64 --output SovereignCore.exe",
+    "compile-watchdog": "pkg WatchdogGuard.js --target win-x64 --output SovereignWatchdog.exe",
+    "compile-scanner": "pkg ManualScanner.js --target win-x64 --output SovereignScanner.exe",
+    "build-all": "npm run compile-core && npm run compile-watchdog && npm run compile-scanner"
+  },
+  "keywords": [
+    "antivirus",
+    "edr",
+    "ransomware-rollback",
+    "shannon-entropy",
+    "registry-protection",
+    "malware-scanner",
+    "cybersecurity"
+  ],
+  "author": "Sovereign Systems",
+  "license": "MIT",
+  "dependencies": {}
+}
