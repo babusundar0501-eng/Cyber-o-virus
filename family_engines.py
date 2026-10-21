@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Iterable
+
 
 RISKY_EXTENSIONS = {
     ".scr", ".pif", ".com", ".js", ".jse", ".vbs", ".vbe",
@@ -20,9 +20,9 @@ DOUBLE_EXTENSIONS = (
 SCRIPT_EXTENSIONS = {".ps1", ".bat", ".cmd", ".js", ".jse", ".vbs", ".hta", ".wsf"}
 EICAR = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 SCRIPT_PATTERNS = (
-    (re.compile(rb"powershell(?:\\.exe)?[^\\r\\n]{0,160}-(?:enc|encodedcommand)\\b", re.I),
+    (re.compile(rb"powershell(?:\.exe)?[^\r\n]{0,160}-(?:enc|encodedcommand)\b", re.I),
      "Script contains an encoded PowerShell command pattern"),
-    (re.compile(rb"frombase64string\\s*\\(", re.I),
+    (re.compile(rb"frombase64string\s*\(", re.I),
      "Script contains a Base64-decoding pattern"),
 )
 
