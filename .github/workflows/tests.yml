@@ -21,6 +21,6 @@ jobs:
         with:
           python-version: "3.12"
       - name: Syntax check
-        run: python -m py_compile main.py test_scanner.py
+        run: python -m py_compile main.py ioc_engine.py test_scanner.py test_ioc_engine.py
       - name: Run scanner tests
-        run: python -m unittest -v test_scanner.py
+        run: python -m unittest discover -v

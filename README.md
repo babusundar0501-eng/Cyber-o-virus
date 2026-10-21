@@ -12,6 +12,7 @@ NO.1 is an experimental, standard-library-only Python security tool. The goal is
 - Heuristics for executable/script extensions and common double-extension disguises.
 - Detect the harmless, standard EICAR antivirus test pattern.
 - Limited script heuristics for encoded PowerShell and Base64-decoding patterns. These can produce false positives and are not proof of malware.
+- Local indicator matching for exact SHA-256 hashes and exact file names, configured in `rules.json` and validated before use.
 - Poll selected folders for newly observed and changed files.
 - Export the visible scan log to CSV.
 - Start Microsoft Defender quick scans and custom folder scans from the dashboard (Windows only).
@@ -53,7 +54,37 @@ python main.py
 - **SKIPPED** means the file was outside the tool's supported scope or exceeded the 1 GiB limit.
 - **ERROR** means the file could not be inspected.
 
-NO.1's own detection is still heuristic and limited. The optional Defender buttons ask the Microsoft Defender installation on the PC to run its native quick/custom scan; they do not turn NO.1's own heuristics into a full antivirus engine. Scan permissions and results depend on Windows Security configuration. This project itself does not have a comprehensive independent malware signature database, cloud reputation, machine-learning model, kernel driver, process-memory inspection, exploit prevention, or reliable ransomware blocking. It does not silently delete or quarantine files.
+NO.1's own detection is still heuristic and limited. The local IOC engine matches only exact SHA-256 hashes and exact filenames supplied in `rules.json`; the starter rule list is empty, rules are not automatically downloaded or cryptographically signed, and a filename match alone is weak evidence. Only add indicators from sources you trust. The optional Defender buttons ask the Microsoft Defender installation on the PC to run its native quick/custom scan; they do not turn NO.1's own heuristics into a full antivirus engine. Scan permissions and results depend on Windows Security configuration. This project itself does not have a comprehensive independent malware signature database, cloud reputation, machine-learning model, kernel driver, process-memory inspection, exploit prevention, or reliable ransomware blocking. It does not silently delete or quarantine files.
+
+## Local indicator rules
+
+The optional `rules.json` file uses schema version 1. It starts empty so the application does not pretend to ship with a comprehensive threat-intelligence feed. Example format:
+
+```json
+{
+  "schema_version": 1,
+  "rules": [
+    {
+      "id": "EXAMPLE-HASH",
+      "description": "Description from a trusted source",
+      "sha256": "replace-with-a-real-64-character-sha256-hash"
+    },
+    {
+      "id": "EXAMPLE-NAME",
+      "description": "Filename indicator from a trusted source",
+      "filename": "example-suspicious-file.exe"
+    }
+  ]
+}
+```
+
+The example hash is a placeholder and will be rejected until replaced with a valid SHA-256 value. You can use `sha256`, `filename`, or both. Rules are local and never execute matched files. A match is an indicator, not proof of maliciousness; filenames can be changed and legitimate files can share a name. Malformed rules are reported instead of being silently trusted.
+
+Run the automated tests from the project folder with:
+
+```bat
+py -3 -m unittest discover -v
+```
 
 ## Safe-use guidance
 
