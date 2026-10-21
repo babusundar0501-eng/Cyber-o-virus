@@ -17,7 +17,8 @@ NO.1 is an experimental, standard-library-only Python security tool. The goal is
 - Poll selected folders for newly observed and changed files.
 - Export the visible scan log to CSV.
 - Start Microsoft Defender quick scans and custom folder scans from the dashboard (Windows only).
-- Read Defender service, antivirus, real-time-protection and signature timestamp indicators (Windows only; read-only).
+- Read Defender service, antivirus, real-time, behavior-monitoring, downloaded-file and on-access protection indicators (Windows only; read-only).
+- Check Windows Firewall Domain, Private and Public profiles plus Defender signature age; show attention warnings for disabled protections or potentially stale signatures (read-only).
 - Read key Microsoft Defender protection indicators and signature-update time from the dashboard.
 - Open Windows Security from the dashboard.
 
@@ -55,7 +56,7 @@ python main.py
 - **SKIPPED** means the file was outside the tool's supported scope or exceeded the 1 GiB limit.
 - **ERROR** means the file could not be inspected.
 
-NO.1's own detection is still heuristic and limited. The local IOC engine matches only exact SHA-256 hashes and exact filenames supplied in `rules.json`; the starter rule list is empty, rules are not automatically downloaded or cryptographically signed, and a filename match alone is weak evidence. Only add indicators from sources you trust. The optional Defender buttons ask the Microsoft Defender installation on the PC to run its native quick/custom scan; they do not turn NO.1's own heuristics into a full antivirus engine. Scan permissions and results depend on Windows Security configuration. This project itself does not have a comprehensive independent malware signature database, cloud reputation, machine-learning model, kernel driver, process-memory inspection, exploit prevention, or reliable ransomware blocking. It does not silently delete or quarantine files.
+NO.1's own detection is still heuristic and limited. The local IOC engine matches only exact SHA-256 hashes and exact filenames supplied in `rules.json`; the starter rule list is empty, rules are not automatically downloaded or cryptographically signed, and a filename match alone is weak evidence. Only add indicators from sources you trust. The optional Defender buttons ask the Microsoft Defender installation on the PC to run its native quick/custom scan; they do not turn NO.1's own heuristics into a full antivirus engine. The security-posture check only reads Defender and Windows Firewall status and reports visible indicators; it does not repair settings, guarantee firewall policy correctness, or prove the computer is clean. Scan permissions and results depend on Windows Security configuration. This project itself does not have a comprehensive independent malware signature database, cloud reputation, machine-learning model, kernel driver, process-memory inspection, exploit prevention, or reliable ransomware blocking. It does not silently delete or quarantine files.
 
 ## Local indicator rules
 
