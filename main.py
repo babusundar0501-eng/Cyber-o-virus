@@ -104,6 +104,7 @@ class NoOneApp:
         self.monitoring = False
         self.monitor_thread: threading.Thread | None = None
         self.seen: dict[str, tuple[int, int]] = {}
+        self.baseline_complete = False
         self.scan_count = 0
         self.alert_count = 0
         self._style()
@@ -234,6 +235,8 @@ class NoOneApp:
             if not self.watch_roots:
                 return
         self.monitoring = True
+        # If this is the first run, build a baseline before reporting new files.
+        self.baseline_complete = bool(self.seen)
         self.monitor_button.configure(text="Stop monitoring")
         self.state_label.configure(text="MONITORING ON", foreground="#74e39a")
         self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
@@ -253,16 +256,18 @@ class NoOneApp:
                                 stamp = (stat.st_size, stat.st_mtime_ns)
                                 previous = self.seen.get(key)
                                 self.seen[key] = stamp
-                                if previous is None:
+                                if previous is None and self.baseline_complete:
                                     self._log("NEW FILE", str(path), "New file observed in watched folder")
                                     self._scan_one(path)
-                                elif previous != stamp:
+                                elif previous is not None and previous != stamp:
                                     self._log("CHANGED", str(path), "File changed in watched folder")
                                     self._scan_one(path)
                             except OSError:
                                 continue
                 except OSError as exc:
                     self._log("ERROR", str(root), str(exc))
+            # The first complete pass is just a baseline, not proof files are new.
+            self.baseline_complete = True
             time.sleep(POLL_SECONDS)
 
     def _export_report(self) -> None:
