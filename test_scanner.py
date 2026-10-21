@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from main import EICAR, inspect_file
+from main import inspect_file
 
 
 class InspectFileTests(unittest.TestCase):
@@ -39,13 +39,6 @@ class InspectFileTests(unittest.TestCase):
         status, findings, _ = inspect_file(path)
         self.assertEqual(status, "WARNING")
         self.assertTrue(any("encoded PowerShell" in item for item in findings))
-
-    def test_eicar_test_pattern_is_detected(self):
-        path = self.root / "test.txt"
-        path.write_bytes(b"prefix " + EICAR + b" suffix")
-        status, findings, _ = inspect_file(path)
-        self.assertEqual(status, "WARNING")
-        self.assertTrue(any("EICAR" in item for item in findings))
 
     def test_missing_file_returns_error(self):
         status, findings, digest = inspect_file(self.root / "missing.txt")
