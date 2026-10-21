@@ -14,6 +14,7 @@ NO.1 is an experimental, standard-library-only Python security tool. The goal is
 - Limited script heuristics for encoded PowerShell and Base64-decoding patterns. These can produce false positives and are not proof of malware.
 - Poll selected folders for newly observed and changed files.
 - Export the visible scan log to CSV.
+- Start Microsoft Defender quick scans and custom folder scans from the dashboard (Windows only).
 - Open Windows Security from the dashboard.
 
 ## Requirements
@@ -50,7 +51,7 @@ python main.py
 - **SKIPPED** means the file was outside the tool's supported scope or exceeded the 1 GiB limit.
 - **ERROR** means the file could not be inspected.
 
-This version does not have a comprehensive malware signature database, cloud reputation, machine-learning model, kernel driver, process-memory inspection, exploit prevention, or reliable ransomware blocking. It does not silently delete or quarantine files.
+NO.1's own detection is still heuristic and limited. The optional Defender buttons ask the Microsoft Defender installation on the PC to run its native quick/custom scan; they do not turn NO.1's own heuristics into a full antivirus engine. Scan permissions and results depend on Windows Security configuration. This project itself does not have a comprehensive independent malware signature database, cloud reputation, machine-learning model, kernel driver, process-memory inspection, exploit prevention, or reliable ransomware blocking. It does not silently delete or quarantine files.
 
 ## Safe-use guidance
 
