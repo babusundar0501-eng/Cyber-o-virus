@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from main import inspect_file
 
@@ -44,6 +45,22 @@ class InspectFileTests(unittest.TestCase):
         status, findings, digest = inspect_file(self.root / "missing.txt")
         self.assertEqual(status, "ERROR")
         self.assertTrue(findings)
+        self.assertEqual(digest, "")
+
+    def test_base64_decoder_pattern_is_flagged(self):
+        path = self.root / "script.ps1"
+        path.write_bytes(b"[Convert]::FromBase64String('AAAA')")
+        status, findings, _ = inspect_file(path)
+        self.assertEqual(status, "WARNING")
+        self.assertTrue(any("Base64-decoding" in item for item in findings))
+
+    def test_file_over_scan_limit_is_skipped(self):
+        path = self.root / "large.bin"
+        path.write_bytes(b"1234")
+        with patch("main.MAX_FILE_BYTES", 3):
+            status, findings, digest = inspect_file(path)
+        self.assertEqual(status, "SKIPPED")
+        self.assertTrue(any("safety limit" in item for item in findings))
         self.assertEqual(digest, "")
 
 
