@@ -50,8 +50,12 @@ def inspect_file(path: Path) -> tuple[str, list[str], str]:
     """Return status, findings and SHA-256 using streaming reads and basic heuristics."""
     findings: list[str] = []
     try:
-        if path.is_symlink() or not path.is_file():
-            return "SKIPPED", ["Not a regular file or symbolic link"], ""
+        if path.is_symlink():
+            return "SKIPPED", ["Symbolic links are not followed"], ""
+        if not path.exists():
+            return "ERROR", ["File does not exist"], ""
+        if not path.is_file():
+            return "SKIPPED", ["Not a regular file"], ""
         size = path.stat().st_size
         if size > MAX_FILE_BYTES:
             return "SKIPPED", [f"File exceeds {MAX_FILE_BYTES // (1024 * 1024)} MiB safety limit"], ""
