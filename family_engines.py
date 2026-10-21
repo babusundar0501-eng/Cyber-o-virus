@@ -21,9 +21,9 @@ SCRIPT_EXTENSIONS = {".ps1", ".bat", ".cmd", ".js", ".jse", ".vbs", ".hta", ".ws
 EICAR = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 SCRIPT_PATTERNS = (
     (re.compile(rb"powershell(?:\\.exe)?[^\\r\\n]{0,160}-(?:enc|encodedcommand)\\b", re.I),
-     "Encoded PowerShell command pattern"),
+     "Script contains an encoded PowerShell command pattern"),
     (re.compile(rb"frombase64string\\s*\\(", re.I),
-     "Base64-decoding pattern"),
+     "Script contains a Base64-decoding pattern"),
 )
 
 ENGINE_INFO = {
