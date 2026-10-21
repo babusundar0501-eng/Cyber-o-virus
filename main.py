@@ -153,6 +153,8 @@ class NoOneApp:
         self.monitor_button = ttk.Button(buttons, text="Start monitoring", command=self._toggle_monitor)
         self.monitor_button.pack(side="left", padx=(0, 8))
         ttk.Button(buttons, text="Export report", command=self._export_report).pack(side="left", padx=(0, 8))
+        ttk.Button(buttons, text="Defender quick scan", command=self._defender_quick_scan).pack(side="left", padx=(0, 8))
+        ttk.Button(buttons, text="Defender scan folder", command=self._defender_folder_scan).pack(side="left", padx=(0, 8))
         ttk.Button(buttons, text="Open Windows Security", command=self._open_windows_security).pack(side="left")
 
         area = ttk.Frame(self.root, padding=(22, 0, 22, 12))
@@ -281,6 +283,56 @@ class NoOneApp:
             messagebox.showinfo(APP_NAME, f"Report saved to:\n{destination}")
         except OSError as exc:
             messagebox.showerror(APP_NAME, f"Could not export report:\n{exc}")
+
+    def _run_defender_scan(self, scan_type: str, path: Path | None = None) -> None:
+        """Ask the installed Microsoft Defender engine to perform a native scan."""
+        if os.name != "nt":
+            self._log("DEFENDER ERROR", str(path or "Computer"), "Microsoft Defender integration is Windows-only")
+            return
+        if path is not None:
+            # Quote as a PowerShell single-quoted literal; embedded apostrophes are doubled.
+            safe_path = str(path.resolve()).replace("'", "''")
+            command = f"Start-MpScan -ScanType CustomScan -ScanPath '{safe_path}' -ErrorAction Stop"
+            target = str(path)
+        else:
+            command = "Start-MpScan -ScanType QuickScan -ErrorAction Stop"
+            target = "Computer (Quick Scan)"
+        self._log("DEFENDER", target, "Requested Microsoft Defender scan; waiting for Windows Security")
+        try:
+            result = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command],
+                capture_output=True, text=True, timeout=3600, check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            if result.returncode == 0:
+                details = "Microsoft Defender scan command completed. Review Windows Security for detections and scan status."
+                if result.stdout.strip():
+                    details += " " + result.stdout.strip()[:500]
+                self._log("DEFENDER COMPLETE", target, details)
+            else:
+                error = (result.stderr or result.stdout or f"PowerShell exited with code {result.returncode}").strip()
+                self._log("DEFENDER ERROR", target, error[:1000])
+        except subprocess.TimeoutExpired:
+            self._log("DEFENDER ERROR", target, "Scan command exceeded the 60-minute timeout; check Windows Security")
+        except OSError as exc:
+            self._log("DEFENDER ERROR", target, f"Could not start PowerShell: {exc}")
+
+    def _defender_quick_scan(self) -> None:
+        if not messagebox.askyesno(APP_NAME, "Start a Microsoft Defender quick scan? NO.1 will ask Windows Security to run the scan."):
+            return
+        threading.Thread(target=self._run_defender_scan, args=("QuickScan",), daemon=True).start()
+
+    def _defender_folder_scan(self) -> None:
+        name = filedialog.askdirectory(title="Choose a folder for Microsoft Defender to scan")
+        if not name:
+            return
+        folder = Path(name)
+        if not folder.exists() or not folder.is_dir():
+            messagebox.showerror(APP_NAME, "Choose an existing folder.")
+            return
+        if not messagebox.askyesno(APP_NAME, f"Ask Microsoft Defender to scan this folder?\n\n{folder}"):
+            return
+        threading.Thread(target=self._run_defender_scan, args=("CustomScan", folder), daemon=True).start()
 
     def _open_windows_security(self) -> None:
         try:
