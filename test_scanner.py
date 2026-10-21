@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from main import inspect_file
+from main import EICAR, inspect_file
 
 
 class InspectFileTests(unittest.TestCase):
@@ -42,7 +42,7 @@ class InspectFileTests(unittest.TestCase):
 
     def test_eicar_test_pattern_is_detected(self):
         path = self.root / "test.txt"
-        path.write_bytes(b"prefix X5O!P%@AP[4\\\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H* suffix")
+        path.write_bytes(b"prefix " + EICAR + b" suffix")
         status, findings, _ = inspect_file(path)
         self.assertEqual(status, "WARNING")
         self.assertTrue(any("EICAR" in item for item in findings))
