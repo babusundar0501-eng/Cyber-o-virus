@@ -15,6 +15,8 @@ NO.1 is an experimental, standard-library-only Python security tool. The goal is
 - Poll selected folders for newly observed and changed files.
 - Export the visible scan log to CSV.
 - Start Microsoft Defender quick scans and custom folder scans from the dashboard (Windows only).
+- Read Defender service, antivirus, real-time-protection and signature timestamp indicators (Windows only; read-only).
+- Read key Microsoft Defender protection indicators and signature-update time from the dashboard.
 - Open Windows Security from the dashboard.
 
 ## Requirements
