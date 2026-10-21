@@ -17,6 +17,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from ioc_engine import match_indicators
+from family_engines import ENGINE_INFO, run_family_engines
 
 APP_NAME = "NO.1 AntiVirus"
 POLL_SECONDS = 3
@@ -62,12 +63,6 @@ def inspect_file(path: Path) -> tuple[str, list[str], str]:
         if size > MAX_FILE_BYTES:
             return "SKIPPED", [f"File exceeds {MAX_FILE_BYTES // (1024 * 1024)} MiB safety limit"], ""
 
-        lower_name = path.name.lower()
-        if path.suffix.lower() in RISKY_EXTENSIONS:
-            findings.append(f"Executable/script type: {path.suffix}")
-        if any(lower_name.endswith(ext) for ext in DOUBLE_EXTENSIONS):
-            findings.append("Double extension may disguise an executable")
-
         digest = hashlib.sha256()
         tail = b""
         eicar_found = False
@@ -85,18 +80,12 @@ def inspect_file(path: Path) -> tuple[str, list[str], str]:
                 if len(script_sample) < 2 * 1024 * 1024:
                     script_sample.extend(chunk[: 2 * 1024 * 1024 - len(script_sample)])
 
-        if eicar_found:
-            findings.append("EICAR antivirus test string detected (harmless test pattern)")
-        if path.suffix.lower() in {".ps1", ".bat", ".cmd", ".js", ".jse", ".vbs", ".hta", ".wsf"}:
-            sample = bytes(script_sample)
-            for pattern, description in SUSPICIOUS_SCRIPT_PATTERNS:
-                if pattern.search(sample):
-                    findings.append(description)
-
         file_hash = digest.hexdigest()
-        ioc_matches, rule_warnings = match_indicators(path, file_hash)
-        findings.extend(ioc_matches)
-        findings.extend(f"Indicator rule warning: {warning}" for warning in rule_warnings)
+        family_findings, rule_warnings = run_family_engines(
+            path, bytes(script_sample), eicar_found, file_hash, match_indicators
+        )
+        findings.extend(family_findings)
+        findings.extend(f"[UNCLE] Indicator rule warning: {warning}" for warning in rule_warnings)
 
         return ("WARNING" if findings else "NO MATCH*"), findings, file_hash
     except (OSError, PermissionError) as exc:
@@ -107,8 +96,8 @@ class NoOneApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title(APP_NAME)
-        self.root.geometry("1120x720")
-        self.root.minsize(820, 560)
+        self.root.geometry("1280x820")
+        self.root.minsize(900, 650)
         self.root.configure(bg="#101114")
         self.events: queue.Queue = queue.Queue()
         self.watch_roots: list[Path] = []
@@ -118,6 +107,8 @@ class NoOneApp:
         self.baseline_complete = False
         self.scan_count = 0
         self.alert_count = 0
+        self.engine_counts = {key: 0 for key in ENGINE_INFO}
+        self.engine_labels: dict[str, ttk.Label] = {}
         self._style()
         self._build()
         self.root.after(150, self._drain_events)
@@ -156,6 +147,21 @@ class NoOneApp:
         self.scans_label = self._metric(cards, "FILES INSPECTED", "0", 0)
         self.alerts_label = self._metric(cards, "WARNINGS", "0", 1)
         self.folders_label = self._metric(cards, "WATCH FOLDERS", "0", 2)
+
+        family = ttk.Frame(self.root, padding=(22, 10, 22, 0))
+        family.pack(fill="x")
+        ttk.Label(family, text="DETECTION FAMILY  /  SPECIALIZED LOCAL CHECKS", style="Sub.TLabel").pack(anchor="w", pady=(0, 7))
+        engine_row = ttk.Frame(family)
+        engine_row.pack(fill="x")
+        for col, (key, info) in enumerate(ENGINE_INFO.items()):
+            card = ttk.Frame(engine_row, padding=(10, 8), relief="groove")
+            card.grid(row=0, column=col, sticky="ew", padx=(0, 7))
+            engine_row.columnconfigure(col, weight=1)
+            ttk.Label(card, text=info[0].upper(), font=("Segoe UI", 9, "bold")).pack(anchor="w")
+            ttk.Label(card, text=info[1], style="Sub.TLabel", wraplength=180).pack(anchor="w", pady=(3, 5))
+            label = ttk.Label(card, text="0 findings", foreground="#74e39a")
+            label.pack(anchor="w")
+            self.engine_labels[key] = label
 
         buttons = ttk.Frame(self.root, padding=(22, 14))
         buttons.pack(fill="x")
@@ -412,6 +418,14 @@ class NoOneApp:
                     self.scan_count += 1
                 if status == "WARNING":
                     self.alert_count += 1
+                    for key in self.engine_counts:
+                        count = details.count(f"[{key}]")
+                        if count:
+                            self.engine_counts[key] += count
+                            self.engine_labels[key].configure(
+                                text=f"{self.engine_counts[key]} findings",
+                                foreground="#ffb8be",
+                            )
                 self.scans_label.configure(text=str(self.scan_count))
                 self.alerts_label.configure(text=str(self.alert_count))
                 if status == "WARNING":
