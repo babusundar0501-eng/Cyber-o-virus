@@ -9,10 +9,11 @@ NO.1 is an experimental, standard-library-only Python security tool. The goal is
 - Scan one file or a selected folder.
 - Stream file contents instead of loading whole files into memory.
 - Compute a full SHA-256 hash for scanned files (when the file is within the 1 GiB per-file limit).
-- Heuristics for executable/script extensions and common double-extension disguises.
+- Five clearly named local detection-family layers in the dashboard: Dad (executable/script type), Mom (limited suspicious script patterns), Uncle (local indicator rules), Son (harmless EICAR test signature), and Aunt (double-extension disguise checks). These are specialized checks inside NO.1, not five third-party antivirus products.
 - Detect the harmless, standard EICAR antivirus test pattern.
 - Limited script heuristics for encoded PowerShell and Base64-decoding patterns. These can produce false positives and are not proof of malware.
 - Local indicator matching for exact SHA-256 hashes and exact file names, configured in `rules.json` and validated before use.
+- Live family dashboard counters show which local detection layer produced findings during scans.
 - Poll selected folders for newly observed and changed files.
 - Export the visible scan log to CSV.
 - Start Microsoft Defender quick scans and custom folder scans from the dashboard (Windows only).
@@ -97,4 +98,4 @@ py -3 -m unittest discover -v
 
 ## Development priorities
 
-A credible path toward stronger protection includes automated unit tests, signed and regularly updated detection rules, reputation and signature validation, safe quarantine with recovery, reliable event monitoring, performance testing, false-positive measurement, and independent security review. Features should be described as implemented only after they are tested. No product can guarantee perfect detection or honestly claim to beat every antivirus without reproducible independent benchmarks.
+The family labels are organizational names for five small checks, not independent antivirus vendors or full AV engines. Dashboard finding counters are cumulative during the current session. A credible path toward stronger protection includes signed and regularly updated detection rules, reputation and signature validation, carefully tested quarantine with recovery, reliable event monitoring, performance testing, false-positive measurement, and independent security review. Features should be described as implemented only after they are tested. No product can guarantee perfect detection or honestly claim to beat every antivirus without reproducible independent benchmarks.
