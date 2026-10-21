@@ -9,7 +9,8 @@ NO.1 is an experimental, standard-library-only Python security tool. The goal is
 - Scan one file or a selected folder.
 - Stream file contents instead of loading whole files into memory.
 - Compute a full SHA-256 hash for scanned files (when the file is within the 1 GiB per-file limit).
-- Five clearly named local detection-family layers in the dashboard: Dad (executable/script type), Mom (limited suspicious script patterns), Uncle (local indicator rules), Son (harmless EICAR test signature), and Aunt (double-extension disguise checks). These are specialized checks inside NO.1, not five third-party antivirus products.
+- Five clearly named local detection-family layers in the dashboard: Dad (file type and executable-disguise checks), Mom (limited suspicious script patterns), Uncle (local indicator rules), Son (harmless EICAR test signature), and Aunt (double-extension disguise checks). These are specialized checks inside NO.1, not five third-party antivirus products.
+- Detect a Windows PE-style `MZ` header when it appears in files named with common document, image, audio, video, or text extensions. This is a low-cost disguise heuristic, not full file-format validation.
 - Detect the harmless, standard EICAR antivirus test pattern.
 - Limited script heuristics for encoded PowerShell and Base64-decoding patterns. These can produce false positives and are not proof of malware.
 - Local indicator matching for exact SHA-256 hashes and exact file names, configured in `rules.json` and validated before use.
@@ -19,7 +20,6 @@ NO.1 is an experimental, standard-library-only Python security tool. The goal is
 - Start Microsoft Defender quick scans and custom folder scans from the dashboard (Windows only).
 - Read Defender service, antivirus, real-time, behavior-monitoring, downloaded-file and on-access protection indicators (Windows only; read-only).
 - Check Windows Firewall Domain, Private and Public profiles plus Defender signature age; show attention warnings for disabled protections or potentially stale signatures (read-only).
-- Read key Microsoft Defender protection indicators and signature-update time from the dashboard.
 - Open Windows Security from the dashboard.
 
 ## Requirements
