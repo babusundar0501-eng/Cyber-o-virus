@@ -16,6 +16,8 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+from ioc_engine import match_indicators
+
 APP_NAME = "NO.1 AntiVirus"
 POLL_SECONDS = 3
 MAX_FILE_BYTES = 1024 * 1024 * 1024  # 1 GiB safety limit per file
@@ -91,7 +93,12 @@ def inspect_file(path: Path) -> tuple[str, list[str], str]:
                 if pattern.search(sample):
                     findings.append(description)
 
-        return ("WARNING" if findings else "NO MATCH*"), findings, digest.hexdigest()
+        file_hash = digest.hexdigest()
+        ioc_matches, rule_warnings = match_indicators(path, file_hash)
+        findings.extend(ioc_matches)
+        findings.extend(f"Indicator rule warning: {warning}" for warning in rule_warnings)
+
+        return ("WARNING" if findings else "NO MATCH*"), findings, file_hash
     except (OSError, PermissionError) as exc:
         return "ERROR", [str(exc)], ""
 
