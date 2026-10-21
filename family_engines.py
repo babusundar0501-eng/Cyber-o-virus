@@ -17,6 +17,13 @@ DOUBLE_EXTENSIONS = (
     ".pdf.exe", ".doc.exe", ".docx.exe", ".jpg.exe", ".png.exe",
     ".txt.exe", ".xlsx.exe", ".mp4.exe", ".jpeg.exe", ".gif.exe",
 )
+# File extensions commonly used for documents, pictures, audio, video, or plain text.
+# A Windows PE executable normally begins with the DOS "MZ" signature.
+NON_EXECUTABLE_EXTENSIONS = {
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".mp3", ".wav",
+    ".mp4", ".mov", ".avi", ".txt", ".rtf", ".csv",
+}
 SCRIPT_EXTENSIONS = {".ps1", ".bat", ".cmd", ".js", ".jse", ".vbs", ".hta", ".wsf"}
 EICAR = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 SCRIPT_PATTERNS = (
@@ -27,7 +34,7 @@ SCRIPT_PATTERNS = (
 )
 
 ENGINE_INFO = {
-    "DAD": ("Dad Engine", "Executable and disguised-file names"),
+    "DAD": ("Dad Engine", "Executable type and executable disguised as a document"),
     "MOM": ("Mom Engine", "Suspicious script patterns"),
     "UNCLE": ("Uncle Engine", "Local SHA-256 and filename indicators"),
     "SON": ("Son Engine", "Harmless EICAR test signature"),
@@ -38,6 +45,15 @@ ENGINE_INFO = {
 def run_file_type_engine(path: Path) -> list[str]:
     if path.suffix.lower() in RISKY_EXTENSIONS:
         return [f"[DAD] Executable/script type: {path.suffix}"]
+    return []
+
+
+def run_executable_disguise_engine(path: Path, sample: bytes) -> list[str]:
+    """Flag a Windows PE-style MZ header hidden behind a common non-executable extension."""
+    if path.suffix.lower() in NON_EXECUTABLE_EXTENSIONS and sample.startswith(b"MZ"):
+        return [
+            "[DAD] Possible executable disguised as a document/media file (MZ header)"
+        ]
     return []
 
 
@@ -67,6 +83,7 @@ def run_family_engines(path: Path, sample: bytes, eicar_found: bool, file_hash: 
     """Run all local family checks and return findings plus rule-validation warnings."""
     findings: list[str] = []
     findings.extend(run_file_type_engine(path))
+    findings.extend(run_executable_disguise_engine(path, sample))
     findings.extend(run_disguise_engine(path))
     findings.extend(run_script_engine(path, sample))
     findings.extend(run_test_signature_engine(eicar_found))
