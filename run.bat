@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title NO.0 AntiVirus
+title NO.1 AntiVirus
 where py >nul 2>nul
 if %errorlevel%==0 (
     py -3 main.py
@@ -19,7 +19,7 @@ if %errorlevel%==0 (
 )
 if errorlevel 1 (
     echo.
-    echo NO.0 stopped with an error. Read the message above.
+    echo NO.1 stopped with an error. Read the message above.
     pause
 )
 endlocal
