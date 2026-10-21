@@ -156,6 +156,7 @@ class NoOneApp:
         ttk.Button(buttons, text="Export report", command=self._export_report).pack(side="left", padx=(0, 8))
         ttk.Button(buttons, text="Defender quick scan", command=self._defender_quick_scan).pack(side="left", padx=(0, 8))
         ttk.Button(buttons, text="Defender scan folder", command=self._defender_folder_scan).pack(side="left", padx=(0, 8))
+        ttk.Button(buttons, text="Check Defender status", command=self._check_defender_status).pack(side="left", padx=(0, 8))
         ttk.Button(buttons, text="Open Windows Security", command=self._open_windows_security).pack(side="left")
 
         area = ttk.Frame(self.root, padding=(22, 0, 22, 12))
@@ -338,6 +339,45 @@ class NoOneApp:
         if not messagebox.askyesno(APP_NAME, f"Ask Microsoft Defender to scan this folder?\n\n{folder}"):
             return
         threading.Thread(target=self._run_defender_scan, args=("CustomScan", folder), daemon=True).start()
+
+    def _check_defender_status(self) -> None:
+        """Read Defender health state without changing any security settings."""
+        if os.name != "nt":
+            messagebox.showinfo(APP_NAME, "Microsoft Defender status is available only on Windows.")
+            return
+        threading.Thread(target=self._read_defender_status, daemon=True).start()
+
+    def _read_defender_status(self) -> None:
+        command = (
+            "Get-MpComputerStatus | Select-Object AMServiceEnabled, AntivirusEnabled, "
+            "RealTimeProtectionEnabled, AntivirusSignatureLastUpdated | ConvertTo-Json -Compress"
+        )
+        try:
+            result = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command],
+                capture_output=True, text=True, timeout=30, check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            if result.returncode != 0:
+                error = (result.stderr or result.stdout or "Defender status query failed").strip()
+                self._log("DEFENDER ERROR", "Defender status", error[:1000])
+                return
+            import json
+            data = json.loads(result.stdout.strip())
+            realtime = data.get("RealTimeProtectionEnabled")
+            antivirus = data.get("AntivirusEnabled")
+            service = data.get("AMServiceEnabled")
+            signature_time = data.get("AntivirusSignatureLastUpdated", "Unknown")
+            details = (
+                f"Service enabled: {service}; Antivirus enabled: {antivirus}; "
+                f"Real-time protection: {realtime}; Signature updated: {signature_time}"
+            )
+            status = "DEFENDER STATUS" if service and antivirus and realtime else "DEFENDER CHECK"
+            if not (service and antivirus and realtime):
+                details += " | WARNING: One or more protection indicators are disabled or unavailable. Open Windows Security to investigate."
+            self._log(status, "Defender status", details)
+        except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
+            self._log("DEFENDER ERROR", "Defender status", str(exc))
 
     def _open_windows_security(self) -> None:
         try:
