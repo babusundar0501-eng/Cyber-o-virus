@@ -1,54 +1,69 @@
-# NO.0 AntiVirus
+# NO.1 AntiVirus — Windows Security Lab
 
-A lightweight Windows security-learning project. The first version provides a Tkinter dashboard, manual file scanning, basic heuristic warnings, SHA-256 hashes, and polling-based monitoring of selected folders.
+NO.1 is an experimental, standard-library-only Python security tool. The goal is to build a serious defensive security project through measurable features, testing, and careful engineering.
 
-> **Important:** NO.0 is an experimental scanner, not a complete antivirus and not a replacement for Microsoft Defender. It does not provide a kernel driver, process-memory scanning, exploit protection, or guaranteed ransomware prevention. Keep Microsoft Defender and Windows Security enabled. Do not use this project as your only protection.
+**Important:** This project is not currently a full antivirus and has not been independently security-tested. It does not replace Microsoft Defender or another reputable endpoint protection product. Keep Windows Security enabled.
+
+## Current features
+
+- Scan one file or a selected folder.
+- Stream file contents instead of loading whole files into memory.
+- Compute a full SHA-256 hash for scanned files (when the file is within the 1 GiB per-file limit).
+- Heuristics for executable/script extensions and common double-extension disguises.
+- Detect the harmless, standard EICAR antivirus test pattern.
+- Limited script heuristics for encoded PowerShell and Base64-decoding patterns. These can produce false positives and are not proof of malware.
+- Poll selected folders for newly observed and changed files.
+- Export the visible scan log to CSV.
+- Start Microsoft Defender quick scans and custom folder scans from the dashboard (Windows only).
+- Read Defender service, antivirus, real-time-protection and signature timestamp indicators (Windows only; read-only).
+- Read key Microsoft Defender protection indicators and signature-update time from the dashboard.
+- Open Windows Security from the dashboard.
 
 ## Requirements
 
 - Windows 10 or Windows 11
-- Python 3.10 or newer, installed from the official Python website
+- Python 3.10 or newer
 - No third-party Python packages required
-- Internet is not required after Python is installed
+- No internet connection required to run this basic version after Python is installed
 
-During Python setup, enable **Add Python to PATH**.
+During Python setup, select **Add Python to PATH**.
 
 ## Run it
 
-1. Download this repository using **Code → Download ZIP**, then extract it.
+1. Download this repository using **Code → Download ZIP** and extract it.
 2. Open the extracted `Cyber-o-virus` folder.
 3. Double-click `run.bat`.
 
-Or open Command Prompt in the folder and run:
+Or run this from Command Prompt in the project folder:
 
 ```bat
 py -3 main.py
 ```
 
-If `py` is unavailable, try:
+If the Python launcher is unavailable, try:
 
 ```bat
 python main.py
 ```
 
-## Features
+## Understand scan results
 
-- Scan a file or folder on demand.
-- Watch user-selected folders for newly created or changed files.
-- Basic heuristics for risky extensions, double extensions, and the harmless EICAR antivirus test string.
-- SHA-256 file hashes and an alert log.
-- No automatic deletion or silent quarantine.
+- **WARNING** means one or more configured heuristics matched. It does not prove a file is malicious.
+- **NO MATCH*** means these limited checks found nothing. It does not mean the file is safe.
+- **SKIPPED** means the file was outside the tool's supported scope or exceeded the 1 GiB limit.
+- **ERROR** means the file could not be inspected.
 
-## Safe use
+NO.1's own detection is still heuristic and limited. The optional Defender buttons ask the Microsoft Defender installation on the PC to run its native quick/custom scan; they do not turn NO.1's own heuristics into a full antivirus engine. Scan permissions and results depend on Windows Security configuration. This project itself does not have a comprehensive independent malware signature database, cloud reputation, machine-learning model, kernel driver, process-memory inspection, exploit prevention, or reliable ransomware blocking. It does not silently delete or quarantine files.
 
-- Start by scanning a folder containing test files, not your entire Windows drive.
-- Heuristic alerts can be false positives. Review results before taking action.
-- The EICAR test string is a standard harmless antivirus test pattern; security software may block or quarantine it.
-- Folder monitoring uses periodic polling and is not a tamper-proof Windows security service.
-- Do not disable Microsoft Defender or run unknown files to test this project.
+## Safe-use guidance
 
-## Troubleshooting
+- Keep Microsoft Defender real-time protection on and install Windows updates.
+- Do not run suspicious files to see what they do.
+- Start by scanning a test folder you control, not the entire Windows drive.
+- Treat alerts as leads for further investigation, not as a final verdict.
+- The folder watcher is polling-based, can miss short-lived changes, and is not a tamper-proof background service.
+- The EICAR pattern is a harmless test string, but Windows Security may detect or quarantine files containing it.
 
-- **Python was not found:** install Python 3 from the official Python website and enable **Add Python to PATH**, then reopen the terminal.
-- **The window opens and closes:** run `py -3 main.py` from Command Prompt to read the error.
-- **No third-party dependencies:** this version uses only Python's standard library.
+## Development priorities
+
+A credible path toward stronger protection includes automated unit tests, signed and regularly updated detection rules, reputation and signature validation, safe quarantine with recovery, reliable event monitoring, performance testing, false-positive measurement, and independent security review. Features should be described as implemented only after they are tested. No product can guarantee perfect detection or honestly claim to beat every antivirus without reproducible independent benchmarks.
