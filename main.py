@@ -7,8 +7,6 @@ from __future__ import annotations
 import hashlib
 import os
 import queue
-import re
-import subprocess
 import threading
 import time
 from datetime import datetime
@@ -18,9 +16,8 @@ from tkinter import filedialog, messagebox, ttk
 
 from ioc_engine import match_indicators
 from family_engines import ENGINE_INFO, run_family_engines
-from security_posture import evaluate_security_posture
 from platform_support import capability_summary
-from quarantine import quarantine_file
+from quarantine import quarantine_file, restore_file
 
 APP_NAME = "NO.1 AntiVirus"
 POLL_SECONDS = 3
@@ -177,7 +174,8 @@ class NoOneApp:
         security_buttons = ttk.Frame(self.root, padding=(22, 0, 22, 12))
         security_buttons.pack(fill="x")
         ttk.Button(security_buttons, text="Export report", command=self._export_report).pack(side="left", padx=(0, 8))
-        ttk.Button(security_buttons, text="Quarantine selected warning", command=self._quarantine_selected).pack(side="left")
+        ttk.Button(security_buttons, text="Quarantine selected warning", command=self._quarantine_selected).pack(side="left", padx=(0, 8))
+        ttk.Button(security_buttons, text="Restore selected quarantine", command=self._restore_selected).pack(side="left")
 
         area = ttk.Frame(self.root, padding=(22, 0, 22, 12))
         area.pack(fill="both", expand=True)
@@ -310,101 +308,6 @@ class NoOneApp:
         except OSError as exc:
             messagebox.showerror(APP_NAME, f"Could not export report:\n{exc}")
 
-    def _run_defender_scan(self, scan_type: str, path: Path | None = None) -> None:
-        """Ask the installed Microsoft Defender engine to perform a native scan."""
-        if os.name != "nt":
-            self._log("DEFENDER ERROR", str(path or "Computer"), "Microsoft Defender integration is Windows-only")
-            return
-        if path is not None:
-            # Quote as a PowerShell single-quoted literal; embedded apostrophes are doubled.
-            safe_path = str(path.resolve()).replace("'", "''")
-            command = f"Start-MpScan -ScanType CustomScan -ScanPath '{safe_path}' -ErrorAction Stop"
-            target = str(path)
-        else:
-            command = "Start-MpScan -ScanType QuickScan -ErrorAction Stop"
-            target = "Computer (Quick Scan)"
-        self._log("DEFENDER", target, "Requested Microsoft Defender scan; waiting for Windows Security")
-        try:
-            result = subprocess.run(
-                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command],
-                capture_output=True, text=True, timeout=3600, check=False,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            )
-            if result.returncode == 0:
-                details = "Microsoft Defender scan command completed. Review Windows Security for detections and scan status."
-                if result.stdout.strip():
-                    details += " " + result.stdout.strip()[:500]
-                self._log("DEFENDER COMPLETE", target, details)
-            else:
-                error = (result.stderr or result.stdout or f"PowerShell exited with code {result.returncode}").strip()
-                self._log("DEFENDER ERROR", target, error[:1000])
-        except subprocess.TimeoutExpired:
-            self._log("DEFENDER ERROR", target, "Scan command exceeded the 60-minute timeout; check Windows Security")
-        except OSError as exc:
-            self._log("DEFENDER ERROR", target, f"Could not start PowerShell: {exc}")
-
-    def _defender_quick_scan(self) -> None:
-        if not messagebox.askyesno(APP_NAME, "Start a Microsoft Defender quick scan? NO.1 will ask Windows Security to run the scan."):
-            return
-        threading.Thread(target=self._run_defender_scan, args=("QuickScan",), daemon=True).start()
-
-    def _defender_folder_scan(self) -> None:
-        name = filedialog.askdirectory(title="Choose a folder for Microsoft Defender to scan")
-        if not name:
-            return
-        folder = Path(name)
-        if not folder.exists() or not folder.is_dir():
-            messagebox.showerror(APP_NAME, "Choose an existing folder.")
-            return
-        if not messagebox.askyesno(APP_NAME, f"Ask Microsoft Defender to scan this folder?\n\n{folder}"):
-            return
-        threading.Thread(target=self._run_defender_scan, args=("CustomScan", folder), daemon=True).start()
-
-    def _check_defender_status(self) -> None:
-        """Read Defender health state without changing any security settings."""
-        if os.name != "nt":
-            messagebox.showinfo(APP_NAME, "Microsoft Defender status is available only on Windows.")
-            return
-        threading.Thread(target=self._read_defender_status, daemon=True).start()
-
-    def _read_defender_status(self) -> None:
-        command = (
-            "$d = Get-MpComputerStatus | Select-Object AMServiceEnabled, AntivirusEnabled, "
-            "RealTimeProtectionEnabled, BehaviorMonitorEnabled, IoavProtectionEnabled, "
-            "OnAccessProtectionEnabled, AntivirusSignatureAge, AntivirusSignatureLastUpdated; "
-            "$f = @(Get-NetFirewallProfile | Select-Object Name, Enabled); "
-            "@{ defender = $d; firewall = $f } | ConvertTo-Json -Depth 4 -Compress"
-        )
-        try:
-            result = subprocess.run(
-                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command],
-                capture_output=True, text=True, timeout=30, check=False,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            )
-            if result.returncode != 0:
-                error = (result.stderr or result.stdout or "Defender status query failed").strip()
-                self._log("DEFENDER ERROR", "Defender status", error[:1000])
-                return
-            import json
-            data = json.loads(result.stdout.strip())
-            overall, observations = evaluate_security_posture(data)
-            defender = data.get("defender") or {}
-            signature_time = defender.get("AntivirusSignatureLastUpdated", "Unknown")
-            details = f"{overall}; signature updated: {signature_time}; " + " | ".join(observations)
-            status = "SECURITY ATTENTION" if overall == "ATTENTION NEEDED" else "SECURITY POSTURE"
-            self._log(status, "Windows security posture", details[:4000])
-        except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
-            self._log("DEFENDER ERROR", "Defender status", str(exc))
-
-    def _open_windows_security(self) -> None:
-        try:
-            os.startfile("windowsdefender:")
-        except (AttributeError, OSError):
-            try:
-                subprocess.Popen(["cmd", "/c", "start", "", "ms-settings:windowsdefender"], shell=False)
-            except OSError as exc:
-                messagebox.showerror(APP_NAME, f"Could not open Windows Security:\n{exc}")
-
     def _quarantine_selected(self) -> None:
         selected = self.table.selection()
         if not selected:
@@ -425,6 +328,30 @@ class NoOneApp:
             messagebox.showinfo(APP_NAME, f"File moved to NO.1 quarantine.\n\nRestore record:\n{record}")
         except (OSError, ValueError) as exc:
             messagebox.showerror(APP_NAME, f"Quarantine failed safely; check the original file.\n\n{exc}")
+
+    def _restore_selected(self) -> None:
+        selected = self.table.selection()
+        if not selected:
+            messagebox.showinfo(APP_NAME, "Select a QUARANTINED row first.")
+            return
+        values = self.table.item(selected[0], "values")
+        if len(values) < 4 or values[1] != "QUARANTINED":
+            messagebox.showwarning(APP_NAME, "Select a row marked QUARANTINED.")
+            return
+        details = str(values[3])
+        marker = "Restore record: "
+        if marker not in details:
+            messagebox.showerror(APP_NAME, "This row does not contain a restore record.")
+            return
+        record = Path(details.split(marker, 1)[1])
+        if not messagebox.askyesno(APP_NAME, "Restore the quarantined file to its original path? Existing files will never be overwritten."):
+            return
+        try:
+            restored = restore_file(record)
+            self._log("RESTORED", str(restored), "NO.1 restored the file and verified its SHA-256.")
+            messagebox.showinfo(APP_NAME, f"Restored and hash-verified:\n{restored}")
+        except (OSError, ValueError) as exc:
+            messagebox.showerror(APP_NAME, f"Restore failed safely.\n\n{exc}")
 
     def _drain_events(self) -> None:
         try:
