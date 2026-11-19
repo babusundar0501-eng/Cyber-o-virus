@@ -1,6 +1,6 @@
-"""NO.1 AntiVirus — experimental Windows security research tool.
+"""NO.1 AntiVirus — experimental cross-platform security research tool.
 
-Uses Python's standard library only. It is not a replacement for Microsoft Defender.
+Uses NO.1's own Python detection checks; no external antivirus engine is called.
 """
 from __future__ import annotations
 
@@ -19,6 +19,8 @@ from tkinter import filedialog, messagebox, ttk
 from ioc_engine import match_indicators
 from family_engines import ENGINE_INFO, run_family_engines
 from security_posture import evaluate_security_posture
+from platform_support import capability_summary
+from quarantine import quarantine_file
 
 APP_NAME = "NO.1 AntiVirus"
 POLL_SECONDS = 3
@@ -131,13 +133,13 @@ class NoOneApp:
         top = ttk.Frame(self.root, padding=(22, 18))
         top.pack(fill="x")
         ttk.Label(top, text="NO.1", style="Title.TLabel").pack(side="left")
-        ttk.Label(top, text="  /  WINDOWS SECURITY LAB", style="Sub.TLabel").pack(side="left", padx=(8, 0), pady=(10, 0))
+        ttk.Label(top, text=f"  /  {capability_summary()['platform'].upper()} SECURITY LAB", style="Sub.TLabel").pack(side="left", padx=(8, 0), pady=(10, 0))
         self.state_label = ttk.Label(top, text="MONITORING OFF", foreground="#ff626b")
         self.state_label.pack(side="right", pady=(10, 0))
 
         notice = tk.Label(
             self.root,
-            text="EXPERIMENTAL SECURITY TOOL  |  Keep Microsoft Defender enabled  |  Heuristic alerts are not proof of malware",
+            text="EXPERIMENTAL INDEPENDENT ENGINE  |  No third-party antivirus engine is used  |  Heuristic alerts are not proof of malware",
             bg="#2a1b1e", fg="#ffb8be", padx=12, pady=9, anchor="w",
             font=("Segoe UI", 9),
         )
@@ -175,10 +177,7 @@ class NoOneApp:
         security_buttons = ttk.Frame(self.root, padding=(22, 0, 22, 12))
         security_buttons.pack(fill="x")
         ttk.Button(security_buttons, text="Export report", command=self._export_report).pack(side="left", padx=(0, 8))
-        ttk.Button(security_buttons, text="Defender quick scan", command=self._defender_quick_scan).pack(side="left", padx=(0, 8))
-        ttk.Button(security_buttons, text="Defender scan folder", command=self._defender_folder_scan).pack(side="left", padx=(0, 8))
-        ttk.Button(security_buttons, text="Check security posture", command=self._check_defender_status).pack(side="left", padx=(0, 8))
-        ttk.Button(security_buttons, text="Open Windows Security", command=self._open_windows_security).pack(side="left")
+        ttk.Button(security_buttons, text="Quarantine selected warning", command=self._quarantine_selected).pack(side="left")
 
         area = ttk.Frame(self.root, padding=(22, 0, 22, 12))
         area.pack(fill="both", expand=True)
@@ -405,6 +404,27 @@ class NoOneApp:
                 subprocess.Popen(["cmd", "/c", "start", "", "ms-settings:windowsdefender"], shell=False)
             except OSError as exc:
                 messagebox.showerror(APP_NAME, f"Could not open Windows Security:\n{exc}")
+
+    def _quarantine_selected(self) -> None:
+        selected = self.table.selection()
+        if not selected:
+            messagebox.showinfo(APP_NAME, "Select a WARNING row first.")
+            return
+        values = self.table.item(selected[0], "values")
+        if len(values) < 3 or values[1] != "WARNING":
+            messagebox.showwarning(APP_NAME, "Only a row marked WARNING can be sent to quarantine.")
+            return
+        target = Path(values[2])
+        prompt = ("Move this file into NO.1 quarantine? This is reversible, but the file "
+                  "will no longer be at its original path.\n\n" + str(target))
+        if not messagebox.askyesno(APP_NAME, prompt):
+            return
+        try:
+            record = quarantine_file(target)
+            self._log("QUARANTINED", str(target), f"Moved to NO.1 quarantine. Restore record: {record}")
+            messagebox.showinfo(APP_NAME, f"File moved to NO.1 quarantine.\n\nRestore record:\n{record}")
+        except (OSError, ValueError) as exc:
+            messagebox.showerror(APP_NAME, f"Quarantine failed safely; check the original file.\n\n{exc}")
 
     def _drain_events(self) -> None:
         try:
