@@ -74,6 +74,8 @@ def quarantine_file(source: str | Path, quarantine_dir: str | Path | None = None
 def restore_file(record_path: str | Path) -> Path:
     """Restore only a valid record whose stored file still matches its SHA-256."""
     record_file = Path(record_path)
+    if record_file.is_symlink() or not record_file.is_file():
+        raise ValueError("Restore record is missing or is not a regular file")
     folder = record_file.parent.resolve()
     data = json.loads(record_file.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or data.get("schema_version") != 1:
@@ -87,6 +89,8 @@ def restore_file(record_path: str | Path) -> Path:
         raise ValueError("Invalid quarantine record")
     stored = folder / stored_name
     original = Path(original_text)
+    if not original.is_absolute():
+        raise ValueError("Restore destination must be an absolute path")
     if stored.is_symlink() or not stored.is_file():
         raise ValueError("Quarantined file is missing or is not a regular file")
     if sha256_file(stored) != digest:
