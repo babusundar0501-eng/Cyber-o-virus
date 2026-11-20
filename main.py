@@ -7,7 +7,6 @@ from __future__ import annotations
 import hashlib
 import os
 import queue
-import re
 import stat
 import threading
 import time
@@ -25,24 +24,6 @@ APP_NAME = "NO.1 AntiVirus"
 POLL_SECONDS = 3
 MAX_FILE_BYTES = 1024 * 1024 * 1024  # 1 GiB safety limit per file
 CHUNK_BYTES = 1024 * 1024
-RISKY_EXTENSIONS = {
-    ".scr", ".pif", ".com", ".js", ".jse", ".vbs", ".vbe",
-    ".wsf", ".wsh", ".hta", ".ps1", ".bat", ".cmd", ".lnk",
-}
-DOUBLE_EXTENSIONS = (
-    ".pdf.exe", ".doc.exe", ".docx.exe", ".jpg.exe", ".png.exe",
-    ".txt.exe", ".xlsx.exe", ".mp4.exe", ".jpeg.exe", ".gif.exe",
-)
-# Standard harmless antivirus test pattern. This is not live malware.
-EICAR = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
-SUSPICIOUS_SCRIPT_PATTERNS = (
-    (re.compile(rb"powershell(?:\.exe)?[^\r\n]{0,160}-(?:enc|encodedcommand)\b", re.I),
-     "Script contains an encoded PowerShell command pattern"),
-    (re.compile(rb"frombase64string\s*\(", re.I),
-     "Script contains a Base64-decoding pattern"),
-)
-
-
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
