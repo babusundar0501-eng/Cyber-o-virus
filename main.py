@@ -285,6 +285,9 @@ class NoOneApp:
             self.monitor_button.configure(text="Start Folder Guard")
             self.state_label.configure(text="● FOLDER GUARD OFF", fg="#ff8792")
             return
+        if self.monitor_thread and self.monitor_thread.is_alive():
+            messagebox.showinfo(APP_NAME, "Folder Guard is still stopping. Please wait a moment, then start it again.")
+            return
         if not self.watch_roots:
             messagebox.showinfo(APP_NAME, "Add at least one folder to monitor first.")
             self._add_watch()
