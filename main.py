@@ -435,7 +435,7 @@ class NoOneApp:
                 _, status, path, details = self.events.get_nowait()
                 stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.table.insert("", 0, values=(stamp, status, path, details), tags=(status,))
-                if status not in {"WATCH", "SCANNING"}:
+                if status in {"NO MATCH*", "WARNING", "ERROR", "SKIPPED", "CHANGED", "NEW FILE", "COMPLETE"}:
                     self.scan_count += 1
                 if status == "WARNING":
                     self.alert_count += 1
