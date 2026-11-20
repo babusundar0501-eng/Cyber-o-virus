@@ -9,9 +9,11 @@ NO.1 is an experimental security project built around its own Python detection c
 - Cross-platform Python/Tkinter desktop interface intended for Windows, macOS, and Linux.
 - Scan one file or a selected folder.
 - Stream file contents and compute SHA-256 (maximum 1 GiB per file).
-- Five internal detection layers: Dad (file-type and executable-disguise checks), Mom (limited suspicious script patterns), Uncle (local SHA-256 and filename indicators), Son (harmless EICAR test string), and Aunt (double-extension disguise checks).
+- Five internal detection layers: Dad (PE/ELF/Mach-O executable bytes hidden behind document/media extensions), Mom (selected suspicious script patterns), Uncle (local SHA-256 and filename indicators), Son (harmless EICAR test string), and Aunt (double-extension disguise checks).
 - Scan findings include the rule/evidence text; heuristic matches can be false positives.
-- Poll selected folders for newly observed and changed files. This is polling, not a kernel-level real-time antivirus shield.
+- Redesigned dark desktop dashboard with scan metrics, built-in detection status, activity log, quarantine and restore actions.
+- Folder Guard inventories and scans files already present when first enabled, then polls watched folders every three seconds for new or changed regular files. It waits for two matching size/modified-time observations before scanning a changed file, reducing scans of files still being written.
+- Folder Guard skips symbolic links and common system/repository folders. It is polling-based protection for selected folders, not kernel-level, system-wide, or guaranteed instant real-time protection.
 - Export the visible scan log to CSV.
 - Send a selected WARNING file to NO.1's own quarantine after confirmation.
 - Restore a selected quarantined file after confirmation, with SHA-256 verification and no-overwrite protection.
@@ -24,7 +26,9 @@ NO.1 is an experimental security project built around its own Python detection c
 - Tkinter must be installed with Python. Some Linux distributions package Tkinter separately (often as `python3-tk`).
 - No administrator/root permission is required for ordinary user-accessible file scans. Files protected by the operating system may be inaccessible.
 
-The same Python detection core is used across platforms. Platform-specific kernel monitoring, process inspection, boot protection, exploit prevention, and system-wide real-time blocking are **not implemented**.
+The same Python detection core is used across platforms. Static rules now recognize common Windows PE, Linux ELF, and macOS Mach-O executable headers when those bytes appear under common document/media extensions. Script checks include encoded PowerShell, selected dynamic decode/execute patterns, and download-to-execution chains. These are narrow heuristics, can miss malware, and can produce false positives. Ordinary script extensions alone are not treated as malware.
+
+Platform-specific kernel event monitoring, process-memory inspection, process blocking, boot protection, exploit prevention, and system-wide real-time blocking are **not implemented**.
 
 ## Run it
 
@@ -74,7 +78,7 @@ Run the standard-library test suite from the repository folder:
 python -m unittest discover -v
 ```
 
-The tests cover platform reporting and basic quarantine/restore safety. They are not a security certification or a malware-detection benchmark.
+The tests cover platform reporting, basic quarantine/restore safety, and selected static detection rules. They are not a security certification or a malware-detection benchmark.
 
 ## Development priorities
 
