@@ -303,16 +303,22 @@ class NoOneApp:
         ignored_dirs = {"$Recycle.Bin", "System Volume Information", ".git", "__pycache__"}
         while self.monitoring:
             for root in list(self.watch_roots):
+                if not self.monitoring:
+                    break
                 try:
                     if root.is_symlink() or not root.is_dir():
                         self._log("ERROR", str(root), "Watch folder is missing or is a symbolic link")
                         continue
                     for base, dirs, files in os.walk(root, followlinks=False):
+                        if not self.monitoring:
+                            break
                         dirs[:] = [
                             name for name in dirs
                             if name not in ignored_dirs and not (Path(base) / name).is_symlink()
                         ]
                         for filename in files:
+                            if not self.monitoring:
+                                break
                             path = Path(base) / filename
                             try:
                                 if path.is_symlink():
