@@ -1,91 +1,87 @@
-# NO.1 AntiVirus — independent cross-platform prototype
+# NO.1 AntiVirus — ClamAV-powered desktop scanner
 
-NO.1 is an experimental security project built around its own Python detection checks. The application does **not** call ClamAV, Microsoft Defender, or another third-party antivirus engine to perform NO.1 scans.
+NO.1 is a cross-platform desktop interface that runs the real **ClamAV** antivirus command-line scanner (\`clamscan\`). ClamAV performs file scanning using its virus signatures and detection engine. NO.1 does not claim that its previous experimental Python heuristics are a replacement for ClamAV.
 
-**Important:** This is an early prototype, not a complete or independently validated antivirus product. Its detection coverage is limited. Do not rely on it as your only protection on a computer containing important data. It does not guarantee detection or prevention of malware.
+**Important:** ClamAV is a signature-based scanner, not a guarantee of complete protection. Detection depends on the installed ClamAV version and current virus databases. Keep your existing operating-system security protections enabled. NO.1 is an experimental desktop scanner, not a kernel-level or fully managed endpoint-protection product.
 
-## Current features
+## Features
 
-- Cross-platform Python/Tkinter desktop interface intended for Windows, macOS, and Linux.
-- Scan one file or a selected folder.
-- Stream file contents and compute SHA-256 (maximum 1 GiB per file).
-- Five internal detection layers: Dad (PE/ELF/Mach-O executable bytes hidden behind document/media extensions), Mom (selected suspicious script patterns), Uncle (local SHA-256 and filename indicators), Son (harmless EICAR test string), and Aunt (double-extension disguise checks).
-- Scan findings include the rule/evidence text; heuristic matches can be false positives.
-- Redesigned dark desktop dashboard with scan metrics, built-in detection status, activity log, quarantine and restore actions.
-- Folder Guard inventories and scans files already present when first enabled, then polls watched folders every three seconds for new or changed regular files. It waits for two matching size/modified-time observations before scanning a changed file, reducing scans of files still being written.
-- Folder Guard skips symbolic links and common system/repository folders. It is polling-based protection for selected folders, not kernel-level, system-wide, or guaranteed instant real-time protection.
+- Cambria typography throughout the desktop interface.
+- **Quick Scan:** scans existing Desktop, Downloads, and Documents folders for the current user.
+- **Long Scan:** recursively scans the current user's home folder.
+- **PC Scan:** scans fixed Windows drives, the macOS Data volume, or the Linux root filesystem. It can take a long time and may need administrator/root permissions to read protected files.
+- Scan a selected file or folder.
+- Folder Guard polls selected folders every three seconds and calls ClamAV when it detects new or changed stable files. This is polling-based and is not instant, system-wide protection.
+- ClamAV infected results appear as WARNING rows. ClamAV errors and missing scanner installations appear as ERROR messages; NO.1 does not fake a clean result when ClamAV is unavailable.
+- Quarantine selected warning files after confirmation; restore them with SHA-256 verification and no-overwrite protection.
 - Export the visible scan log to CSV.
-- Send a selected WARNING file to NO.1's own quarantine after confirmation.
-- Restore a selected quarantined file after confirmation, with SHA-256 verification and no-overwrite protection.
-- Uses Python standard-library modules only; no third-party antivirus engine or Python package is required.
+- Uses Python standard-library modules only. ClamAV itself is a separate required installation.
 
-## Platform requirements
+## Requirements
 
-- Windows 10/11, macOS, or a mainstream Linux distribution.
-- Python 3.10 or newer.
-- Tkinter must be installed with Python. Some Linux distributions package Tkinter separately (often as `python3-tk`).
-- No administrator/root permission is required for ordinary user-accessible file scans. Files protected by the operating system may be inaccessible.
+- Windows 10/11, macOS, or mainstream Linux.
+- Python 3.10 or newer with Tkinter.
+- ClamAV installed, with \`clamscan\` available on PATH (Windows also checks the usual Program Files installation folders).
+- Updated ClamAV virus database. Run \`freshclam\` after installing, following the platform's ClamAV setup instructions.
 
-The same Python detection core is used across platforms. Static rules now recognize common Windows PE, Linux ELF, and macOS Mach-O executable headers when those bytes appear under common document/media extensions. Script checks include encoded PowerShell, selected dynamic decode/execute patterns, and download-to-execution chains. These are narrow heuristics, can miss malware, and can produce false positives. Ordinary script extensions alone are not treated as malware.
+### Install ClamAV
 
-Platform-specific kernel event monitoring, process-memory inspection, process blocking, boot protection, exploit prevention, and system-wide real-time blocking are **not implemented**.
+- **Windows:** install the official ClamAV Windows distribution, then ensure the folder containing \`clamscan.exe\` is on PATH. Run \`freshclam.exe\` to download/update signatures if it is included in the distribution.
+- **macOS (Homebrew):** \`brew install clamav\`, configure the ClamAV database settings as required by the installed package, then run \`freshclam\`.
+- **Debian/Ubuntu:** \`sudo apt install clamav clamav-freshclam\`, then update definitions with \`sudo freshclam\`.
 
-## Run it
+The exact installation steps can vary by ClamAV release and operating system. NO.1 checks for \`clamscan\` when a scan starts and displays an error if it cannot find it.
+
+## Run NO.1
 
 ### Windows
 
-Double-click `run.bat`, or run:
+Double-click \`run.bat\`, or run:
 
-```powershell
+\`\`\`powershell
 py -3 main.py
-```
+\`\`\`
 
 ### macOS and Linux
 
 From the repository folder:
 
-```bash
+\`\`\`bash
 python3 main.py
-```
+\`\`\`
 
-If Tkinter is missing on Linux, install the Tkinter package supplied by your distribution, then run the command again.
+If Tkinter is missing on Linux, install the Tkinter package supplied by your distribution (commonly \`python3-tk\`).
+
+## Scan modes and coverage
+
+- **Quick Scan** covers the current user's Desktop, Downloads, and Documents folders that exist.
+- **Long Scan** covers the current user's home directory, including nested folders.
+- **PC Scan** covers fixed drives on Windows, the Data volume on macOS, or \`/\` on Linux. It excludes volatile pseudo-filesystem locations such as \`/proc\`, \`/sys\`, \`/dev\`, and \`/run\` on Unix-like systems. Protected files may not be readable unless NO.1 is run with sufficient privileges.
+- ClamAV is configured with a 1 GiB maximum file size and 4 GiB maximum scan size per scan target to limit resource use. Files beyond ClamAV's configured limits may not be inspected.
+
+A clean scan means ClamAV did not report an infection in the files it was able to inspect with its current definitions. It does **not** prove that the computer is malware-free.
+
+## Folder Guard
+
+Folder Guard inventories and scans files already present when first enabled, then polls selected folders every three seconds for new or changed regular files. It waits for two identical size/modified-time observations before scanning a changed file, reducing scans of files still being written. It skips symbolic links and common system/repository folders. Files created and deleted between polling passes can be missed.
+
+Folder Guard is not a native filesystem event monitor, kernel driver, process blocker, boot-time scanner, exploit-prevention system, or complete real-time protection.
 
 ## Quarantine and restore
 
 1. Scan a file or folder.
-2. Select a row marked `WARNING`.
+2. Select a row marked \`WARNING\`.
 3. Choose **Quarantine selected warning** and confirm.
-4. To recover it, select its `QUARANTINED` log row and choose **Restore selected quarantine**.
+4. To recover it, select its \`QUARANTINED\` log row and choose **Restore selected file**.
 
-Quarantine moves the file into a per-user NO.1 data directory and stores a JSON restore record. It refuses symbolic links, verifies SHA-256, and refuses to overwrite an existing restore destination. The move uses an atomic same-filesystem operation; if the quarantine directory is on another filesystem, the operation fails rather than silently copying. Keep the restore record and quarantine folder together. This prototype has not received an independent security audit.
-
-## Understand results
-
-- **WARNING** means one or more local rules matched. It is not proof that a file is malicious.
-- **NO MATCH*** means only that the currently implemented rules found nothing. It does not mean the file is safe.
-- **SKIPPED** means the file was outside the supported scope or exceeded the 1 GiB limit.
-- **ERROR** means the file could not be inspected.
-
-The local IOC file `rules.json` starts empty. It accepts exact SHA-256 and filename indicators. A filename match is weak evidence; only add verified indicators from sources you trust. The application does not currently download or cryptographically verify threat-intelligence updates.
-
-The EICAR pattern is a harmless antivirus test string, not live malware. Other checks are deliberately simple heuristics. NO.1 currently has no comprehensive malware signature database, cloud reputation service, validated machine-learning detector, process-memory scanner, kernel driver, exploit prevention, or tested ransomware blocking.
+Quarantine moves the file into a per-user NO.1 data directory and stores a JSON restore record. It refuses symbolic links, verifies SHA-256, and refuses to overwrite an existing restore destination. Keep the restore record and quarantine folder together. This prototype has not received an independent security audit.
 
 ## Tests
 
-Run the standard-library test suite from the repository folder:
+Run:
 
-```bash
+\`\`\`bash
 python -m unittest discover -v
-```
+\`\`\`
 
-The tests cover platform reporting, basic quarantine/restore safety, and selected static detection rules. They are not a security certification or a malware-detection benchmark.
-
-## Development priorities
-
-1. Expand detection rules with provenance, versioning, cryptographic signatures, expiry, and rollback.
-2. Build a real event-monitoring layer separately for Windows, macOS, and Linux, with least privilege.
-3. Add controlled ransomware-behaviour simulations and recovery testing.
-4. Measure false positives, missed detections, scan performance, and resource use on clean and controlled test sets.
-5. Obtain independent security review before making protection or superiority claims.
-
-NO.1's goal is an independent engine. It may use operating-system APIs to inspect files and receive events, but detection decisions must come from NO.1's own code and verified data. No product can honestly promise to detect every threat.
+Tests mock ClamAV process results and do not download malware or require a live ClamAV installation. Passing tests do not constitute a security certification or malware-detection benchmark.
