@@ -45,11 +45,11 @@ ENGINE_INFO = {
 def _executable_format(sample: bytes) -> str | None:
     if sample.startswith(b"MZ"):
         return "Windows PE-style executable (MZ)"
-    if sample.startswith(b"\\x7fELF"):
+    if sample.startswith(b"\x7fELF"):
         return "ELF executable"
-    if sample.startswith((b"\\xfe\\xed\\xfa\\xce", b"\\xfe\\xed\\xfa\\xcf",
-                          b"\\xce\\xfa\\xed\\xfe", b"\\xcf\\xfa\\xed\\xfe",
-                          b"\\xca\\xfe\\xba\\xbe")):
+    if sample.startswith((b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf",
+                          b"\xce\xfa\xed\xfe", b"\xcf\xfa\xed\xfe",
+                          b"\xca\xfe\xba\xbe")):
         return "Mach-O or universal binary"
     return None
 
