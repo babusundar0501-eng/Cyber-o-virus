@@ -20,14 +20,14 @@ class InspectFileTests(unittest.TestCase):
         self.assertEqual(findings, [])
         self.assertEqual(len(digest), 64)
 
-    def test_risky_extension_is_flagged(self):
+    def test_script_extension_alone_is_not_flagged(self):
         path = self.root / "script.ps1"
         path.write_text("Write-Output 'hello'", encoding="utf-8")
         status, findings, _ = inspect_file(path)
-        self.assertEqual(status, "WARNING")
-        self.assertTrue(any("Executable/script type" in item for item in findings))
+        self.assertEqual(status, "NO MATCH*")
+        self.assertEqual(findings, [])
 
-    def test_double_extension_is_flagged(self):
+    def test_double_extension_is_flagged_as_heuristic(self):
         path = self.root / "photo.jpg.exe"
         path.write_bytes(b"test")
         status, findings, _ = inspect_file(path)
@@ -39,7 +39,14 @@ class InspectFileTests(unittest.TestCase):
         path.write_bytes(b"powershell.exe -EncodedCommand AAAA")
         status, findings, _ = inspect_file(path)
         self.assertEqual(status, "WARNING")
-        self.assertTrue(any("encoded PowerShell" in item for item in findings))
+        self.assertTrue(any("Encoded PowerShell" in item for item in findings))
+
+    def test_pe_bytes_disguised_as_pdf_are_flagged(self):
+        path = self.root / "invoice.pdf"
+        path.write_bytes(b"MZ" + b"\x00" * 100)
+        status, findings, _ = inspect_file(path)
+        self.assertEqual(status, "WARNING")
+        self.assertTrue(any("Windows PE-style" in item for item in findings))
 
     def test_missing_file_returns_error(self):
         status, findings, digest = inspect_file(self.root / "missing.txt")
