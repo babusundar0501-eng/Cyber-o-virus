@@ -61,7 +61,8 @@ def inspect_file(path: Path) -> tuple[str, list[str], str]:
             return "ERROR", ["File does not exist"], ""
         if not path.is_file():
             return "SKIPPED", ["Not a regular file"], ""
-        size = path.stat().st_size
+        initial_stat = path.stat()
+        size = initial_stat.st_size
         if size > MAX_FILE_BYTES:
             return "SKIPPED", [f"File exceeds {MAX_FILE_BYTES // (1024 * 1024)} MiB safety limit"], ""
 
@@ -83,7 +84,7 @@ def inspect_file(path: Path) -> tuple[str, list[str], str]:
                     script_sample.extend(chunk[: 2 * 1024 * 1024 - len(script_sample)])
 
         after = path.stat()
-        if (after.st_size, after.st_mtime_ns) != (size, path.stat().st_mtime_ns):
+        if (after.st_size, after.st_mtime_ns) != (initial_stat.st_size, initial_stat.st_mtime_ns):
             return "CHANGED", ["File changed while NO.1 was inspecting it; scan it again when stable"], ""
         file_hash = digest.hexdigest()
         family_findings, rule_warnings = run_family_engines(
