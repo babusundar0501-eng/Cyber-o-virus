@@ -54,7 +54,7 @@ def _executable_format(sample: bytes) -> str | None:
     return None
 
 
-def run_file_type_engine(path: Path, sample: bytes = b\"\") -> list[str]:
+def run_file_type_engine(path: Path, sample: bytes = b"") -> list[str]:
     file_format = _executable_format(sample)
     if file_format and path.suffix.lower() in DOCUMENT_MEDIA_EXTENSIONS:
         return [f"[DAD] {file_format} content has a document/media extension ({path.suffix})"]
