@@ -1,3 +1,3 @@
-# NO.1 AntiVirus uses Python's standard library only.
-# No pip packages or external antivirus engines are required.
+# Python dependencies: standard library only.
+# Runtime requirement: install ClamAV separately and make clamscan available on PATH.
 # Tkinter must be available in your Python installation for the desktop UI.
