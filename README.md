@@ -2,7 +2,7 @@
 
 NO.1 is a cross-platform desktop interface that runs the real **ClamAV** antivirus command-line scanner (\`clamscan\`). ClamAV performs file scanning using its virus signatures and detection engine. NO.1 does not claim that its previous experimental Python heuristics are a replacement for ClamAV.
 
-**Important:** ClamAV is a signature-based scanner, not a guarantee of complete protection. Detection depends on the installed ClamAV version and current virus databases. Keep your existing operating-system security protections enabled. NO.1 is an experimental desktop scanner, not a kernel-level or fully managed endpoint-protection product.
+**Important:** ClamAV scans using its engine and current virus database; it is not a guarantee of complete protection. Detection depends on the installed ClamAV version and current virus databases. Keep your existing operating-system security protections enabled. NO.1 is an experimental desktop scanner, not a kernel-level or fully managed endpoint-protection product.
 
 ## Features
 
