@@ -94,7 +94,7 @@ class NoOneApp:
 
         metrics = ttk.Frame(self.root)
         metrics.pack(fill="x", padx=24, pady=(0, 18))
-        self.scans_label = self._metric(metrics, "FILES INSPECTED", "0", 0)
+        self.scans_label = self._metric(metrics, "SCAN RESULTS", "0", 0)
         self.alerts_label = self._metric(metrics, "WARNINGS", "0", 1)
         self.folders_label = self._metric(metrics, "WATCHED FOLDERS", "0", 2)
 
@@ -162,6 +162,7 @@ class NoOneApp:
         self.table.tag_configure("QUARANTINED", foreground="#f3c77b")
         self.table.tag_configure("ERROR", foreground="#ff9b9b")
         self.table.tag_configure("SCANNING", foreground="#a9c9ed")
+        self.table.tag_configure("COMPLETE", foreground="#a9c9ed")
         scroll = ttk.Scrollbar(area, orient="vertical", command=self.table.yview)
         self.table.configure(yscrollcommand=scroll.set)
         self.table.pack(side="left", fill="both", expand=True)
@@ -244,7 +245,9 @@ class NoOneApp:
         if code == 0:
             self._log("NO MATCH*", label, "ClamAV completed: no infected files were reported")
         elif code == 1:
-            self._log("WARNING", label, f"ClamAV completed and reported {len(infected)} infected result(s)")
+            if not infected:
+                self._log("WARNING", label, "ClamAV reported an infection but did not return a file detail")
+            self._log("COMPLETE", label, f"ClamAV finished · {len(infected)} infected result(s)")
         else:
             self._log("ERROR", label, diagnostic or "ClamAV scan failed or could not access the scan locations")
 
@@ -427,7 +430,7 @@ class NoOneApp:
                 _, status, path, details = self.events.get_nowait()
                 stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.table.insert("", 0, values=(stamp, status, path, details), tags=(status,))
-                if status not in {"WATCH", "ERROR", "SCANNING"}:
+                if status not in {"WATCH", "SCANNING"}:
                     self.scan_count += 1
                 if status == "WARNING":
                     self.alert_count += 1
