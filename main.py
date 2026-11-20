@@ -100,7 +100,7 @@ class NoOneApp:
         self.baseline_complete = False
         self.scan_count = 0
         self.alert_count = 0
-        self.engine_counts = {key: 0 for key in ENGINE_INFO}
+        self.engine_counts = {}
         self.engine_labels: dict[str, ttk.Label] = {}
         self._style()
         self._build()
@@ -112,8 +112,8 @@ class NoOneApp:
         style.theme_use("clam")
         style.configure("TFrame", background="#0b1020")
         style.configure("Card.TFrame", background="#121b2e", relief="flat")
-        style.configure("TLabel", background="#0b1020", foreground="#e8eefb", font=("Segoe UI", 10))
-        style.configure("Muted.TLabel", background="#121b2e", foreground="#8fa1bd", font=("Segoe UI", 9))
+        style.configure("TLabel", background="#0b1020", foreground="#e8eefb", font=(FONT, 10))
+        style.configure("Muted.TLabel", background="#121b2e", foreground="#8fa1bd", font=(FONT, 9))
         style.configure("CardTitle.TLabel", background="#121b2e", foreground="#8fa1bd", font=("Segoe UI", 9, "bold"))
         style.configure("Metric.TLabel", background="#121b2e", foreground="#ffffff", font=("Segoe UI", 23, "bold"))
         style.configure("Treeview", background="#101a2b", fieldbackground="#101a2b", foreground="#e8eefb",
@@ -131,7 +131,7 @@ class NoOneApp:
         brand.pack(side="left")
         tk.Label(brand, text="NO.1", bg="#0b1020", fg="#ffffff",
                  font=("Segoe UI", 27, "bold")).pack(side="left")
-        tk.Label(brand, text="  INDEPENDENT SECURITY", bg="#0b1020", fg="#7794b8",
+        tk.Label(brand, text="  CLAMAV-POWERED SECURITY", bg="#0b1020", fg="#7794b8",
                  font=("Segoe UI", 9, "bold")).pack(side="left", pady=(12, 0))
         right = tk.Frame(header, bg="#0b1020")
         right.pack(side="right")
@@ -143,11 +143,11 @@ class NoOneApp:
 
         hero = tk.Frame(self.root, bg="#13233a", padx=24, pady=20)
         hero.pack(fill="x", padx=24, pady=(0, 18))
-        tk.Label(hero, text="Independent scanning for your files.", bg="#13233a", fg="#ffffff",
+        tk.Label(hero, text="ClamAV-powered scanning for your computer.", bg="#13233a", fg="#ffffff",
                  font=("Segoe UI", 20, "bold")).pack(anchor="w")
-        tk.Label(hero, text="Independent static scanning and watched-folder monitoring. No external antivirus engine.",
+        tk.Label(hero, text="Quick, long and whole-PC scans powered by ClamAV virus signatures.",
                  bg="#13233a", fg="#a9bdd8", font=("Segoe UI", 10)).pack(anchor="w", pady=(5, 0))
-        tk.Label(hero, text="FOLDER GUARD USES 3-SECOND POLLING · NOT KERNEL-LEVEL OR FULL SYSTEM PROTECTION",
+        tk.Label(hero, text="CLAMAV SCANNING · FOLDER GUARD USES 3-SECOND POLLING",
                  bg="#13233a", fg="#f4c77b", font=("Segoe UI", 8, "bold")).pack(anchor="w", pady=(12, 0))
 
         metrics = ttk.Frame(self.root)
@@ -177,7 +177,10 @@ class NoOneApp:
             button.bind("<Leave>", lambda _event: button.configure(bg=color))
             return button
 
-        action("Scan a file", self._pick_file, True)
+        action("QUICK SCAN", lambda: self._start_mode_scan("quick"), True)
+        action("LONG SCAN", lambda: self._start_mode_scan("long"))
+        action("PC SCAN", lambda: self._start_mode_scan("pc"))
+        action("Scan a file", self._pick_file)
         action("Scan a folder", self._pick_folder)
         action("Add folder to Folder Guard", self._add_watch)
         self.monitor_button = action("Start Folder Guard", self._toggle_monitor)
@@ -186,20 +189,12 @@ class NoOneApp:
         action("Export scan report", self._export_report)
 
         tk.Frame(left, bg="#263650", height=1).pack(fill="x", pady=15)
-        tk.Label(left, text="BUILT-IN DETECTION", bg="#121b2e", fg="#a9bdd8",
+        tk.Label(left, text="SCAN ENGINE", bg="#121b2e", fg="#a9bdd8",
                  font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 8))
         self.engine_labels = {}
-        for key, info in ENGINE_INFO.items():
-            line = tk.Frame(left, bg="#17243a", padx=9, pady=7)
-            line.pack(fill="x", pady=3)
-            tk.Label(line, text=info[0], bg="#17243a", fg="#e8eefb",
-                     font=("Segoe UI", 8, "bold")).pack(anchor="w")
-            tk.Label(line, text=info[1], bg="#17243a", fg="#8fa1bd",
-                     font=("Segoe UI", 8), wraplength=225, justify="left").pack(anchor="w", pady=(3, 2))
-            count = tk.Label(line, text="0 findings", bg="#17243a", fg="#72d6ad",
-                             font=("Segoe UI", 8, "bold"))
-            count.pack(anchor="w")
-            self.engine_labels[key] = count
+        self.clamav_status = tk.Label(left, text="ClamAV is ready when clamscan is installed.", bg="#17243a", fg="#8fa1bd",
+                                      font=(FONT, 9), wraplength=225, justify="left", padx=10, pady=10)
+        self.clamav_status.pack(fill="x")
 
         right_panel = tk.Frame(content, bg="#121b2e", padx=15, pady=14)
         right_panel.pack(side="left", fill="both", expand=True)
@@ -224,13 +219,14 @@ class NoOneApp:
         self.table.tag_configure("NO MATCH*", foreground="#83d9b3")
         self.table.tag_configure("QUARANTINED", foreground="#f3c77b")
         self.table.tag_configure("ERROR", foreground="#ff9b9b")
+        self.table.tag_configure("SCANNING", foreground="#a9c9ed")
         scroll = ttk.Scrollbar(area, orient="vertical", command=self.table.yview)
         self.table.configure(yscrollcommand=scroll.set)
         self.table.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
 
         footer = tk.Label(self.root,
-            text="A clean result means only that NO.1's current rules found no match. It is not a guarantee that a file is safe.",
+            text="Powered by ClamAV. A clean result is not a guarantee that a file or computer is safe.",
             bg="#0b1020", fg="#8294ae", font=("Segoe UI", 8))
         footer.pack(anchor="w", padx=27, pady=(0, 12))
 
@@ -247,11 +243,60 @@ class NoOneApp:
         self.events.put(("result", status, path, details))
 
     def _scan_one(self, path: Path) -> None:
-        status, findings, digest = inspect_file(path)
-        detail = "; ".join(findings) if findings else ("No configured check matched" if status == "NO MATCH*" else status)
-        if digest:
-            detail += f" | SHA256 {digest}"
+        status, findings, _digest = inspect_file(path)
+        detail = "; ".join(findings) if findings else ("ClamAV found no detection" if status == "NO MATCH*" else status)
         self._log(status, str(path), detail)
+
+    def _quick_targets(self) -> list[Path]:
+        home = Path.home()
+        names = ("Desktop", "Downloads", "Documents")
+        return [home / name for name in names if (home / name).is_dir()]
+
+    def _pc_targets(self) -> list[Path]:
+        if os.name == "nt":
+            drives = ctypes.windll.kernel32.GetLogicalDrives()
+            fixed = []
+            for index in range(26):
+                if drives & (1 << index):
+                    drive = f"{chr(65 + index)}:\\"
+                    if ctypes.windll.kernel32.GetDriveTypeW(drive) == 3:
+                        fixed.append(Path(drive))
+            return fixed
+        if sys.platform == "darwin":
+            data_volume = Path("/System/Volumes/Data")
+            return [data_volume if data_volume.exists() else Path("/")]
+        return [Path("/")]
+
+    def _start_mode_scan(self, mode: str) -> None:
+        if mode == "quick":
+            targets, label = self._quick_targets(), "Quick scan"
+        elif mode == "long":
+            targets, label = [Path.home()], "Long scan (user folder)"
+        else:
+            targets, label = self._pc_targets(), "PC scan (fixed/system storage)"
+            if not messagebox.askyesno(APP_NAME, "PC Scan can take a long time and may report access-denied files. For the broadest coverage, run NO.1 with administrator/root permissions. Start PC Scan?"):
+                return
+        if not targets:
+            messagebox.showwarning(APP_NAME, "No scan locations were found for this scan.")
+            return
+        if not find_clamscan():
+            self.clamav_status.configure(text="ClamAV NOT FOUND", fg="#ff9b9b")
+            messagebox.showerror(APP_NAME, "ClamAV is not installed or clamscan is not on PATH. Install ClamAV, update its virus database with freshclam, then restart NO.1.")
+            return
+        self.clamav_status.configure(text=f"ClamAV ready · {label} running", fg="#72d6ad")
+        threading.Thread(target=self._scan_paths, args=(targets, label, True), daemon=True).start()
+
+    def _scan_paths(self, targets: list[Path], label: str, recursive: bool = True) -> None:
+        self._log("SCANNING", label, "ClamAV scan started: " + ", ".join(str(p) for p in targets))
+        code, infected, diagnostic = scan_with_clamav(targets, recursive=recursive)
+        for line in infected:
+            self._log("WARNING", label, line)
+        if code == 0:
+            self._log("NO MATCH*", label, "ClamAV completed: no infected files were reported")
+        elif code == 1:
+            self._log("WARNING", label, f"ClamAV completed and reported {len(infected)} infected result(s)")
+        else:
+            self._log("ERROR", label, diagnostic or "ClamAV scan failed or could not access the scan locations")
 
     def _pick_file(self) -> None:
         name = filedialog.askopenfilename(title="Choose a file to inspect")
@@ -264,16 +309,7 @@ class NoOneApp:
             threading.Thread(target=self._scan_folder, args=(Path(name),), daemon=True).start()
 
     def _scan_folder(self, folder: Path) -> None:
-        for base, dirs, files in os.walk(folder, followlinks=False):
-            dirs[:] = [
-                d for d in dirs
-                if d not in {"$Recycle.Bin", "System Volume Information"}
-                and not (Path(base) / d).is_symlink()
-            ]
-            for filename in files:
-                path = Path(base) / filename
-                if not path.is_symlink():
-                    self._scan_one(path)
+        self._scan_paths([folder], "Selected folder scan", recursive=True)
 
     def _add_watch(self) -> None:
         name = filedialog.askdirectory(title="Choose a folder to monitor")
@@ -441,18 +477,10 @@ class NoOneApp:
                 _, status, path, details = self.events.get_nowait()
                 stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.table.insert("", 0, values=(stamp, status, path, details), tags=(status,))
-                if status not in {"WATCH", "ERROR"}:
+                if status not in {"WATCH", "ERROR", "SCANNING"}:
                     self.scan_count += 1
                 if status == "WARNING":
                     self.alert_count += 1
-                    for key in self.engine_counts:
-                        count = details.count(f"[{key}]")
-                        if count:
-                            self.engine_counts[key] += count
-                            self.engine_labels[key].configure(
-                                text=f"{self.engine_counts[key]} findings",
-                                foreground="#ffb8be",
-                            )
                 self.scans_label.configure(text=str(self.scan_count))
                 self.alerts_label.configure(text=str(self.alert_count))
                 if status == "WARNING":
