@@ -82,6 +82,9 @@ def inspect_file(path: Path) -> tuple[str, list[str], str]:
                 if len(script_sample) < 2 * 1024 * 1024:
                     script_sample.extend(chunk[: 2 * 1024 * 1024 - len(script_sample)])
 
+        after = path.stat()
+        if (after.st_size, after.st_mtime_ns) != (size, path.stat().st_mtime_ns):
+            return "CHANGED", ["File changed while NO.1 was inspecting it; scan it again when stable"], ""
         file_hash = digest.hexdigest()
         family_findings, rule_warnings = run_family_engines(
             path, bytes(script_sample), eicar_found, file_hash, match_indicators
