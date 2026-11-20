@@ -8,6 +8,7 @@ import hashlib
 import os
 import queue
 import re
+import stat
 import threading
 import time
 from datetime import datetime
@@ -105,6 +106,7 @@ class NoOneApp:
         self.monitoring = False
         self.monitor_thread: threading.Thread | None = None
         self.seen: dict[str, tuple[int, int]] = {}
+        self.pending: dict[str, tuple[tuple[int, int], int]] = {}
         self.baseline_complete = False
         self.scan_count = 0
         self.alert_count = 0
@@ -272,10 +274,16 @@ class NoOneApp:
             threading.Thread(target=self._scan_folder, args=(Path(name),), daemon=True).start()
 
     def _scan_folder(self, folder: Path) -> None:
-        for base, dirs, files in os.walk(folder):
-            dirs[:] = [d for d in dirs if d not in {"$Recycle.Bin", "System Volume Information"}]
+        for base, dirs, files in os.walk(folder, followlinks=False):
+            dirs[:] = [
+                d for d in dirs
+                if d not in {"$Recycle.Bin", "System Volume Information"}
+                and not (Path(base) / d).is_symlink()
+            ]
             for filename in files:
-                self._scan_one(Path(base) / filename)
+                path = Path(base) / filename
+                if not path.is_symlink():
+                    self._scan_one(path)
 
     def _add_watch(self) -> None:
         name = filedialog.askdirectory(title="Choose a folder to monitor")
@@ -289,8 +297,8 @@ class NoOneApp:
     def _toggle_monitor(self) -> None:
         if self.monitoring:
             self.monitoring = False
-            self.monitor_button.configure(text="Start monitoring")
-            self.state_label.configure(text="MONITORING OFF", foreground="#ff626b")
+            self.monitor_button.configure(text="Start Folder Guard")
+            self.state_label.configure(text="● FOLDER GUARD OFF", fg="#ff8792")
             return
         if not self.watch_roots:
             messagebox.showinfo(APP_NAME, "Add at least one folder to monitor first.")
@@ -300,38 +308,69 @@ class NoOneApp:
         self.monitoring = True
         # If this is the first run, build a baseline before reporting new files.
         self.baseline_complete = bool(self.seen)
-        self.monitor_button.configure(text="Stop monitoring")
-        self.state_label.configure(text="MONITORING ON", foreground="#74e39a")
+        self.monitor_button.configure(text="Stop Folder Guard")
+        self.state_label.configure(text="● FOLDER GUARD ON", fg="#72d6ad")
         self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self.monitor_thread.start()
 
     def _monitor_loop(self) -> None:
+        """Poll watched folders, baseline existing files, and scan stable changes."""
+        ignored_dirs = {"$Recycle.Bin", "System Volume Information", ".git", "__pycache__"}
         while self.monitoring:
             for root in list(self.watch_roots):
                 try:
-                    for base, dirs, files in os.walk(root):
-                        dirs[:] = [d for d in dirs if d not in {"$Recycle.Bin", "System Volume Information"}]
+                    if root.is_symlink() or not root.is_dir():
+                        self._log("ERROR", str(root), "Watch folder is missing or is a symbolic link")
+                        continue
+                    for base, dirs, files in os.walk(root, followlinks=False):
+                        dirs[:] = [
+                            name for name in dirs
+                            if name not in ignored_dirs and not (Path(base) / name).is_symlink()
+                        ]
                         for filename in files:
                             path = Path(base) / filename
                             try:
-                                stat = path.stat()
-                                key = str(path).lower()
-                                stamp = (stat.st_size, stat.st_mtime_ns)
+                                if path.is_symlink():
+                                    continue
+                                info = path.stat(follow_symlinks=False)
+                                if not stat.S_ISREG(info.st_mode):
+                                    continue
+                                key = os.path.normcase(str(path))
+                                stamp = (info.st_size, info.st_mtime_ns)
                                 previous = self.seen.get(key)
-                                self.seen[key] = stamp
-                                if previous is None and self.baseline_complete:
-                                    self._log("NEW FILE", str(path), "New file observed in watched folder")
+
+                                # First pass: establish inventory and scan files already present.
+                                if not self.baseline_complete:
+                                    self.seen[key] = stamp
                                     self._scan_one(path)
-                                elif previous is not None and previous != stamp:
-                                    self._log("CHANGED", str(path), "File changed in watched folder")
+                                    continue
+
+                                if previous == stamp:
+                                    self.pending.pop(key, None)
+                                    continue
+
+                                pending = self.pending.get(key)
+                                stable_count = pending[1] + 1 if pending and pending[0] == stamp else 1
+                                self.pending[key] = (stamp, stable_count)
+
+                                # Require two identical observations to avoid scanning a file mid-write.
+                                if stable_count >= 2:
+                                    event = "NEW FILE" if previous is None else "CHANGED"
+                                    self.seen[key] = stamp
+                                    self.pending.pop(key, None)
+                                    self._log(event, str(path), "Stable file change detected by Folder Guard")
                                     self._scan_one(path)
-                            except OSError:
+                            except (OSError, PermissionError):
                                 continue
                 except OSError as exc:
                     self._log("ERROR", str(root), str(exc))
-            # The first complete pass is just a baseline, not proof files are new.
+
             self.baseline_complete = True
-            time.sleep(POLL_SECONDS)
+            # Event-driven native monitoring is not yet implemented; this is a 3-second polling guard.
+            for _ in range(POLL_SECONDS * 10):
+                if not self.monitoring:
+                    break
+                time.sleep(0.1)
 
     def _export_report(self) -> None:
         destination = filedialog.asksaveasfilename(
@@ -402,7 +441,7 @@ class NoOneApp:
             while True:
                 _, status, path, details = self.events.get_nowait()
                 stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                self.table.insert("", 0, values=(stamp, status, path, details))
+                self.table.insert("", 0, values=(stamp, status, path, details), tags=(status,))
                 if status not in {"WATCH", "ERROR"}:
                     self.scan_count += 1
                 if status == "WARNING":
