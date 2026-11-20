@@ -433,6 +433,10 @@ class NoOneApp:
         try:
             while True:
                 _, status, path, details = self.events.get_nowait()
+                if status in {"NO MATCH*", "COMPLETE"}:
+                    self.clamav_status.configure(text="ClamAV ready · scan complete", fg="#72d6ad")
+                elif status == "ERROR":
+                    self.clamav_status.configure(text="ClamAV · scan finished with errors", fg="#ffb8be")
                 stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.table.insert("", 0, values=(stamp, status, path, details), tags=(status,))
                 if status in {"NO MATCH*", "WARNING", "ERROR", "SKIPPED", "CHANGED", "NEW FILE", "COMPLETE"}:
