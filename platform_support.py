@@ -1,4 +1,4 @@
-"""Cross-platform facts for NO.1's own engine (no external AV dependency)."""
+"""Cross-platform information for NO.1's ClamAV-powered desktop scanner."""
 from __future__ import annotations
 
 import platform
