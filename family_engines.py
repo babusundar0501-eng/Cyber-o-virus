@@ -54,7 +54,7 @@ def _executable_format(sample: bytes) -> str | None:
     return None
 
 
-def run_file_type_engine(path: Path, sample: bytes) -> list[str]:
+def run_file_type_engine(path: Path, sample: bytes = b\"\") -> list[str]:
     file_format = _executable_format(sample)
     if file_format and path.suffix.lower() in DOCUMENT_MEDIA_EXTENSIONS:
         return [f"[DAD] {file_format} content has a document/media extension ({path.suffix})"]
@@ -62,8 +62,7 @@ def run_file_type_engine(path: Path, sample: bytes) -> list[str]:
 
 
 def run_executable_disguise_engine(path: Path, sample: bytes) -> list[str]:
-    # Kept as a separate compatibility check for the existing engine dashboard.
-    return []
+    return run_file_type_engine(path, sample)
 
 
 def run_script_engine(path: Path, sample: bytes) -> list[str]:
@@ -91,7 +90,6 @@ def run_disguise_engine(path: Path) -> list[str]:
 def run_family_engines(path: Path, sample: bytes, eicar_found: bool, file_hash: str, match_indicators) -> tuple[list[str], list[str]]:
     findings: list[str] = []
     findings.extend(run_file_type_engine(path, sample))
-    findings.extend(run_executable_disguise_engine(path, sample))
     findings.extend(run_disguise_engine(path))
     findings.extend(run_script_engine(path, sample))
     findings.extend(run_test_signature_engine(eicar_found))
