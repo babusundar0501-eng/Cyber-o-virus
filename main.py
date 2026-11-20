@@ -205,12 +205,17 @@ class NoOneApp:
 
     def _pc_targets(self) -> list[Path]:
         if os.name == "nt":
-            drives = ctypes.windll.kernel32.GetLogicalDrives()
+            get_logical_drives = ctypes.windll.kernel32.GetLogicalDrives
+            get_logical_drives.restype = ctypes.c_uint
+            get_drive_type = ctypes.windll.kernel32.GetDriveTypeW
+            get_drive_type.argtypes = [ctypes.c_wchar_p]
+            get_drive_type.restype = ctypes.c_uint
+            drives = get_logical_drives()
             fixed = []
             for index in range(26):
                 if drives & (1 << index):
                     drive = f"{chr(65 + index)}:\\"
-                    if ctypes.windll.kernel32.GetDriveTypeW(drive) == 3:
+                    if get_drive_type(drive) == 3:
                         fixed.append(Path(drive))
             return fixed
         if sys.platform == "darwin":
