@@ -25,13 +25,13 @@ def find_clamscan() -> str | None:
 
 def scan_with_clamav(targets: list[Path], recursive: bool = True) -> tuple[int, list[str], str]:
     """Run ClamAV; exit codes are 0=clean, 1=infected, 2=error."""
-    executable = find_clamscan()
-    if not executable:
-        return 2, [], "ClamAV was not found. Install ClamAV and put clamscan on PATH."
     existing = [str(path) for path in targets if path.exists()]
     missing = [str(path) for path in targets if not path.exists()]
     if not existing:
         return 2, [], "No selected scan locations exist: " + ", ".join(missing)
+    executable = find_clamscan()
+    if not executable:
+        return 2, [], "ClamAV was not found. Install ClamAV and put clamscan on PATH."
     command = [executable, "--infected", "--no-summary", "--max-filesize=1G", "--max-scansize=4G"]
     if recursive:
         command.append("--recursive")
