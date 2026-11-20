@@ -118,93 +118,136 @@ class NoOneApp:
     def _style(self) -> None:
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("TFrame", background="#101114")
-        style.configure("TLabel", background="#101114", foreground="#e8e8ea", font=("Segoe UI", 10))
-        style.configure("Title.TLabel", font=("Segoe UI", 24, "bold"), foreground="#ffffff")
-        style.configure("Sub.TLabel", foreground="#a7a7af")
-        style.configure("TButton", font=("Segoe UI", 10), padding=8)
-        style.configure("Treeview", background="#191a1f", fieldbackground="#191a1f", foreground="#ededf0", rowheight=26)
-        style.configure("Treeview.Heading", background="#27282e", foreground="#ffffff")
-        style.map("TButton", background=[("active", "#bd303b")])
+        style.configure("TFrame", background="#0b1020")
+        style.configure("Card.TFrame", background="#121b2e", relief="flat")
+        style.configure("TLabel", background="#0b1020", foreground="#e8eefb", font=("Segoe UI", 10))
+        style.configure("Muted.TLabel", background="#121b2e", foreground="#8fa1bd", font=("Segoe UI", 9))
+        style.configure("CardTitle.TLabel", background="#121b2e", foreground="#8fa1bd", font=("Segoe UI", 9, "bold"))
+        style.configure("Metric.TLabel", background="#121b2e", foreground="#ffffff", font=("Segoe UI", 23, "bold"))
+        style.configure("Treeview", background="#101a2b", fieldbackground="#101a2b", foreground="#e8eefb",
+                        rowheight=34, borderwidth=0, font=("Segoe UI", 9))
+        style.configure("Treeview.Heading", background="#1a2941", foreground="#b9c9e2",
+                        relief="flat", font=("Segoe UI", 9, "bold"), padding=(8, 10))
+        style.map("Treeview", background=[("selected", "#234a70")], foreground=[("selected", "#ffffff")])
+        style.configure("Vertical.TScrollbar", background="#17243a", troughcolor="#0e1727", borderwidth=0)
 
     def _build(self) -> None:
-        top = ttk.Frame(self.root, padding=(22, 18))
-        top.pack(fill="x")
-        ttk.Label(top, text="NO.1", style="Title.TLabel").pack(side="left")
-        ttk.Label(top, text=f"  /  {capability_summary()['platform'].upper()} SECURITY LAB", style="Sub.TLabel").pack(side="left", padx=(8, 0), pady=(10, 0))
-        self.state_label = ttk.Label(top, text="MONITORING OFF", foreground="#ff626b")
-        self.state_label.pack(side="right", pady=(10, 0))
+        self.root.configure(bg="#0b1020")
+        header = tk.Frame(self.root, bg="#0b1020", padx=28, pady=20)
+        header.pack(fill="x")
+        brand = tk.Frame(header, bg="#0b1020")
+        brand.pack(side="left")
+        tk.Label(brand, text="NO.1", bg="#0b1020", fg="#ffffff",
+                 font=("Segoe UI", 27, "bold")).pack(side="left")
+        tk.Label(brand, text="  INDEPENDENT SECURITY", bg="#0b1020", fg="#7794b8",
+                 font=("Segoe UI", 9, "bold")).pack(side="left", pady=(12, 0))
+        right = tk.Frame(header, bg="#0b1020")
+        right.pack(side="right")
+        tk.Label(right, text=capability_summary()["platform"].upper(), bg="#17243a", fg="#a9c9ed",
+                 padx=12, pady=7, font=("Segoe UI", 9, "bold")).pack(side="left", padx=(0, 10))
+        self.state_label = tk.Label(right, text="● FOLDER GUARD OFF", bg="#0b1020", fg="#ff8792",
+                                    font=("Segoe UI", 9, "bold"))
+        self.state_label.pack(side="left", pady=8)
 
-        notice = tk.Label(
-            self.root,
-            text="EXPERIMENTAL INDEPENDENT ENGINE  |  No third-party antivirus engine is used  |  Heuristic alerts are not proof of malware",
-            bg="#2a1b1e", fg="#ffb8be", padx=12, pady=9, anchor="w",
-            font=("Segoe UI", 9),
-        )
-        notice.pack(fill="x", padx=22, pady=(0, 14))
+        hero = tk.Frame(self.root, bg="#13233a", padx=24, pady=20)
+        hero.pack(fill="x", padx=24, pady=(0, 18))
+        tk.Label(hero, text="Your files. Watched by NO.1.", bg="#13233a", fg="#ffffff",
+                 font=("Segoe UI", 20, "bold")).pack(anchor="w")
+        tk.Label(hero, text="Independent static scanning and watched-folder monitoring. No external antivirus engine.",
+                 bg="#13233a", fg="#a9bdd8", font=("Segoe UI", 10)).pack(anchor="w", pady=(5, 0))
+        tk.Label(hero, text="FOLDER GUARD USES 3-SECOND POLLING · NOT KERNEL-LEVEL OR FULL SYSTEM PROTECTION",
+                 bg="#13233a", fg="#f4c77b", font=("Segoe UI", 8, "bold")).pack(anchor="w", pady=(12, 0))
 
-        cards = ttk.Frame(self.root, padding=(22, 0))
-        cards.pack(fill="x")
-        self.scans_label = self._metric(cards, "FILES INSPECTED", "0", 0)
-        self.alerts_label = self._metric(cards, "WARNINGS", "0", 1)
-        self.folders_label = self._metric(cards, "WATCH FOLDERS", "0", 2)
+        metrics = ttk.Frame(self.root)
+        metrics.pack(fill="x", padx=24, pady=(0, 18))
+        self.scans_label = self._metric(metrics, "FILES INSPECTED", "0", 0)
+        self.alerts_label = self._metric(metrics, "WARNINGS", "0", 1)
+        self.folders_label = self._metric(metrics, "PROTECTED FOLDERS", "0", 2)
 
-        family = ttk.Frame(self.root, padding=(22, 10, 22, 0))
-        family.pack(fill="x")
-        ttk.Label(family, text="DETECTION FAMILY  /  SPECIALIZED LOCAL CHECKS", style="Sub.TLabel").pack(anchor="w", pady=(0, 7))
-        engine_row = ttk.Frame(family)
-        engine_row.pack(fill="x")
-        for col, (key, info) in enumerate(ENGINE_INFO.items()):
-            card = ttk.Frame(engine_row, padding=(10, 8), relief="groove")
-            card.grid(row=0, column=col, sticky="ew", padx=(0, 7))
-            engine_row.columnconfigure(col, weight=1)
-            ttk.Label(card, text=info[0].upper(), font=("Segoe UI", 9, "bold")).pack(anchor="w")
-            ttk.Label(card, text=info[1], style="Sub.TLabel", wraplength=180).pack(anchor="w", pady=(3, 5))
-            label = ttk.Label(card, text="0 findings", foreground="#74e39a")
-            label.pack(anchor="w")
-            self.engine_labels[key] = label
+        content = tk.Frame(self.root, bg="#0b1020")
+        content.pack(fill="both", expand=True, padx=24, pady=(0, 16))
+        left = tk.Frame(content, bg="#121b2e", width=275, padx=16, pady=16)
+        left.pack(side="left", fill="y", padx=(0, 16))
+        left.pack_propagate(False)
+        tk.Label(left, text="QUICK ACTIONS", bg="#121b2e", fg="#a9bdd8",
+                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 12))
 
-        buttons = ttk.Frame(self.root, padding=(22, 14))
-        buttons.pack(fill="x")
-        ttk.Button(buttons, text="Scan file", command=self._pick_file).pack(side="left", padx=(0, 8))
-        ttk.Button(buttons, text="Scan folder", command=self._pick_folder).pack(side="left", padx=(0, 8))
-        ttk.Button(buttons, text="Add watch folder", command=self._add_watch).pack(side="left", padx=(0, 8))
-        self.monitor_button = ttk.Button(buttons, text="Start monitoring", command=self._toggle_monitor)
-        self.monitor_button.pack(side="left", padx=(0, 8))
+        def action(text, command, primary=False):
+            color = "#1e8a70" if primary else "#1b2a42"
+            hover = "#27a184" if primary else "#263b5a"
+            button = tk.Button(left, text=text, command=command, anchor="w",
+                               bg=color, fg="#ffffff", activebackground=hover,
+                               activeforeground="#ffffff", relief="flat", bd=0,
+                               padx=13, pady=11, cursor="hand2",
+                               font=("Segoe UI", 9, "bold"))
+            button.pack(fill="x", pady=4)
+            button.bind("<Enter>", lambda _event: button.configure(bg=hover))
+            button.bind("<Leave>", lambda _event: button.configure(bg=color))
+            return button
 
-        security_buttons = ttk.Frame(self.root, padding=(22, 0, 22, 12))
-        security_buttons.pack(fill="x")
-        ttk.Button(security_buttons, text="Export report", command=self._export_report).pack(side="left", padx=(0, 8))
-        ttk.Button(security_buttons, text="Quarantine selected warning", command=self._quarantine_selected).pack(side="left", padx=(0, 8))
-        ttk.Button(security_buttons, text="Restore selected quarantine", command=self._restore_selected).pack(side="left")
+        action("Scan a file", self._pick_file, True)
+        action("Scan a folder", self._pick_folder)
+        action("Add folder to Folder Guard", self._add_watch)
+        self.monitor_button = action("Start Folder Guard", self._toggle_monitor)
+        action("Quarantine selected warning", self._quarantine_selected)
+        action("Restore selected file", self._restore_selected)
+        action("Export scan report", self._export_report)
 
-        area = ttk.Frame(self.root, padding=(22, 0, 22, 12))
+        tk.Frame(left, bg="#263650", height=1).pack(fill="x", pady=15)
+        tk.Label(left, text="BUILT-IN DETECTION", bg="#121b2e", fg="#a9bdd8",
+                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 8))
+        self.engine_labels = {}
+        for key, info in ENGINE_INFO.items():
+            line = tk.Frame(left, bg="#17243a", padx=9, pady=7)
+            line.pack(fill="x", pady=3)
+            tk.Label(line, text=info[0], bg="#17243a", fg="#e8eefb",
+                     font=("Segoe UI", 8, "bold")).pack(anchor="w")
+            tk.Label(line, text=info[1], bg="#17243a", fg="#8fa1bd",
+                     font=("Segoe UI", 8), wraplength=225, justify="left").pack(anchor="w", pady=(3, 2))
+            count = tk.Label(line, text="0 findings", bg="#17243a", fg="#72d6ad",
+                             font=("Segoe UI", 8, "bold"))
+            count.pack(anchor="w")
+            self.engine_labels[key] = count
+
+        right_panel = tk.Frame(content, bg="#121b2e", padx=15, pady=14)
+        right_panel.pack(side="left", fill="both", expand=True)
+        title_row = tk.Frame(right_panel, bg="#121b2e")
+        title_row.pack(fill="x", pady=(0, 10))
+        tk.Label(title_row, text="ACTIVITY & DETECTIONS", bg="#121b2e", fg="#ffffff",
+                 font=("Segoe UI", 12, "bold")).pack(side="left")
+        tk.Label(title_row, text="LATEST EVENTS", bg="#121b2e", fg="#8fa1bd",
+                 font=("Segoe UI", 8, "bold")).pack(side="right", pady=3)
+
+        area = tk.Frame(right_panel, bg="#121b2e")
         area.pack(fill="both", expand=True)
         columns = ("time", "status", "file", "details")
         self.table = ttk.Treeview(area, columns=columns, show="headings")
-        for col, label in zip(columns, ("TIME", "STATUS", "FILE", "FINDINGS / HASH")):
+        for col, label in zip(columns, ("TIME", "RESULT", "FILE / LOCATION", "DETECTION EVIDENCE")):
             self.table.heading(col, text=label)
-        self.table.column("time", width=150, stretch=False)
-        self.table.column("status", width=105, stretch=False)
-        self.table.column("file", width=360)
-        self.table.column("details", width=440)
+        self.table.column("time", width=145, stretch=False)
+        self.table.column("status", width=115, stretch=False)
+        self.table.column("file", width=260)
+        self.table.column("details", width=390)
+        self.table.tag_configure("WARNING", foreground="#ff9b9b")
+        self.table.tag_configure("NO MATCH*", foreground="#83d9b3")
+        self.table.tag_configure("QUARANTINED", foreground="#f3c77b")
+        self.table.tag_configure("ERROR", foreground="#ff9b9b")
         scroll = ttk.Scrollbar(area, orient="vertical", command=self.table.yview)
         self.table.configure(yscrollcommand=scroll.set)
         self.table.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
 
-        ttk.Label(
-            self.root,
-            text="* NO MATCH means only that these limited checks found nothing. It does NOT mean the file is safe.",
-            style="Sub.TLabel",
-        ).pack(anchor="w", padx=24, pady=(0, 14))
+        footer = tk.Label(self.root,
+            text="A clean result means only that NO.1's current rules found no match. It is not a guarantee that a file is safe.",
+            bg="#0b1020", fg="#8294ae", font=("Segoe UI", 8))
+        footer.pack(anchor="w", padx=27, pady=(0, 12))
 
     def _metric(self, parent: ttk.Frame, title: str, value: str, col: int) -> ttk.Label:
-        card = ttk.Frame(parent, padding=12, relief="groove")
-        card.grid(row=0, column=col, sticky="ew", padx=(0, 10))
+        card = ttk.Frame(parent, style="Card.TFrame", padding=(16, 12))
+        card.grid(row=0, column=col, sticky="ew", padx=(0, 12))
         parent.columnconfigure(col, weight=1)
-        ttk.Label(card, text=title, style="Sub.TLabel").pack(anchor="w")
-        label = ttk.Label(card, text=value, font=("Segoe UI", 19, "bold"))
+        ttk.Label(card, text=title, style="CardTitle.TLabel").pack(anchor="w")
+        label = ttk.Label(card, text=value, style="Metric.TLabel")
         label.pack(anchor="w", pady=(4, 0))
         return label
 
