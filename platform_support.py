@@ -33,8 +33,8 @@ def capability_summary() -> dict[str, str]:
     """Describe what this prototype can safely claim on the current OS."""
     return {
         "platform": platform_name(),
-        "engine": "NO.1 built-in Python detection checks",
-        "external_antivirus": "Not used by NO.1",
+        "engine": "ClamAV command-line scanner (clamscan)",
+        "external_antivirus": "ClamAV is the scanning engine",
         "real_time_protection": "Polling folder monitor only; not full system protection",
         "privileged_monitoring": "Not implemented",
     }
