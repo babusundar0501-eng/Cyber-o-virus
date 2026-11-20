@@ -7,7 +7,7 @@ NO.1 is a cross-platform desktop interface that runs the real **ClamAV** antivir
 ## Features
 
 - Cambria typography throughout the desktop interface.
-- **Quick Scan:** scans existing Desktop, Downloads, and Documents folders for the current user.
+- **Quick Scan:** scans existing Desktop, Downloads, Documents, Pictures, and Videos folders for the current user.
 - **Long Scan:** recursively scans the current user's home folder.
 - **PC Scan:** scans fixed Windows drives, the macOS Data volume, or the Linux root filesystem. It can take a long time and may need administrator/root permissions to read protected files.
 - Scan a selected file or folder.
