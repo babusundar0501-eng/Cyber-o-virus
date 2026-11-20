@@ -9,6 +9,7 @@ import os
 import queue
 import shutil
 import stat
+import sys
 import subprocess
 import threading
 import time
@@ -114,12 +115,12 @@ class NoOneApp:
         style.configure("Card.TFrame", background="#121b2e", relief="flat")
         style.configure("TLabel", background="#0b1020", foreground="#e8eefb", font=(FONT, 10))
         style.configure("Muted.TLabel", background="#121b2e", foreground="#8fa1bd", font=(FONT, 9))
-        style.configure("CardTitle.TLabel", background="#121b2e", foreground="#8fa1bd", font=("Segoe UI", 9, "bold"))
-        style.configure("Metric.TLabel", background="#121b2e", foreground="#ffffff", font=("Segoe UI", 23, "bold"))
+        style.configure("CardTitle.TLabel", background="#121b2e", foreground="#8fa1bd", font=("Cambria", 9, "bold"))
+        style.configure("Metric.TLabel", background="#121b2e", foreground="#ffffff", font=("Cambria", 23, "bold"))
         style.configure("Treeview", background="#101a2b", fieldbackground="#101a2b", foreground="#e8eefb",
-                        rowheight=34, borderwidth=0, font=("Segoe UI", 9))
+                        rowheight=34, borderwidth=0, font=("Cambria", 9))
         style.configure("Treeview.Heading", background="#1a2941", foreground="#b9c9e2",
-                        relief="flat", font=("Segoe UI", 9, "bold"), padding=(8, 10))
+                        relief="flat", font=("Cambria", 9, "bold"), padding=(8, 10))
         style.map("Treeview", background=[("selected", "#234a70")], foreground=[("selected", "#ffffff")])
         style.configure("Vertical.TScrollbar", background="#17243a", troughcolor="#0e1727", borderwidth=0)
 
@@ -130,25 +131,25 @@ class NoOneApp:
         brand = tk.Frame(header, bg="#0b1020")
         brand.pack(side="left")
         tk.Label(brand, text="NO.1", bg="#0b1020", fg="#ffffff",
-                 font=("Segoe UI", 27, "bold")).pack(side="left")
+                 font=("Cambria", 27, "bold")).pack(side="left")
         tk.Label(brand, text="  CLAMAV-POWERED SECURITY", bg="#0b1020", fg="#7794b8",
-                 font=("Segoe UI", 9, "bold")).pack(side="left", pady=(12, 0))
+                 font=("Cambria", 9, "bold")).pack(side="left", pady=(12, 0))
         right = tk.Frame(header, bg="#0b1020")
         right.pack(side="right")
         tk.Label(right, text=capability_summary()["platform"].upper(), bg="#17243a", fg="#a9c9ed",
-                 padx=12, pady=7, font=("Segoe UI", 9, "bold")).pack(side="left", padx=(0, 10))
+                 padx=12, pady=7, font=("Cambria", 9, "bold")).pack(side="left", padx=(0, 10))
         self.state_label = tk.Label(right, text="● FOLDER GUARD OFF", bg="#0b1020", fg="#ff8792",
-                                    font=("Segoe UI", 9, "bold"))
+                                    font=("Cambria", 9, "bold"))
         self.state_label.pack(side="left", pady=8)
 
         hero = tk.Frame(self.root, bg="#13233a", padx=24, pady=20)
         hero.pack(fill="x", padx=24, pady=(0, 18))
         tk.Label(hero, text="ClamAV-powered scanning for your computer.", bg="#13233a", fg="#ffffff",
-                 font=("Segoe UI", 20, "bold")).pack(anchor="w")
+                 font=("Cambria", 20, "bold")).pack(anchor="w")
         tk.Label(hero, text="Quick, long and whole-PC scans powered by ClamAV virus signatures.",
-                 bg="#13233a", fg="#a9bdd8", font=("Segoe UI", 10)).pack(anchor="w", pady=(5, 0))
+                 bg="#13233a", fg="#a9bdd8", font=("Cambria", 10)).pack(anchor="w", pady=(5, 0))
         tk.Label(hero, text="CLAMAV SCANNING · FOLDER GUARD USES 3-SECOND POLLING",
-                 bg="#13233a", fg="#f4c77b", font=("Segoe UI", 8, "bold")).pack(anchor="w", pady=(12, 0))
+                 bg="#13233a", fg="#f4c77b", font=("Cambria", 8, "bold")).pack(anchor="w", pady=(12, 0))
 
         metrics = ttk.Frame(self.root)
         metrics.pack(fill="x", padx=24, pady=(0, 18))
@@ -162,7 +163,7 @@ class NoOneApp:
         left.pack(side="left", fill="y", padx=(0, 16))
         left.pack_propagate(False)
         tk.Label(left, text="QUICK ACTIONS", bg="#121b2e", fg="#a9bdd8",
-                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 12))
+                 font=("Cambria", 9, "bold")).pack(anchor="w", pady=(0, 12))
 
         def action(text, command, primary=False):
             color = "#1e8a70" if primary else "#1b2a42"
@@ -171,7 +172,7 @@ class NoOneApp:
                                bg=color, fg="#ffffff", activebackground=hover,
                                activeforeground="#ffffff", relief="flat", bd=0,
                                padx=13, pady=11, cursor="hand2",
-                               font=("Segoe UI", 9, "bold"))
+                               font=("Cambria", 9, "bold"))
             button.pack(fill="x", pady=4)
             button.bind("<Enter>", lambda _event: button.configure(bg=hover))
             button.bind("<Leave>", lambda _event: button.configure(bg=color))
@@ -190,7 +191,7 @@ class NoOneApp:
 
         tk.Frame(left, bg="#263650", height=1).pack(fill="x", pady=15)
         tk.Label(left, text="SCAN ENGINE", bg="#121b2e", fg="#a9bdd8",
-                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 8))
+                 font=("Cambria", 9, "bold")).pack(anchor="w", pady=(0, 8))
         self.engine_labels = {}
         self.clamav_status = tk.Label(left, text="ClamAV is ready when clamscan is installed.", bg="#17243a", fg="#8fa1bd",
                                       font=(FONT, 9), wraplength=225, justify="left", padx=10, pady=10)
@@ -201,9 +202,9 @@ class NoOneApp:
         title_row = tk.Frame(right_panel, bg="#121b2e")
         title_row.pack(fill="x", pady=(0, 10))
         tk.Label(title_row, text="ACTIVITY & DETECTIONS", bg="#121b2e", fg="#ffffff",
-                 font=("Segoe UI", 12, "bold")).pack(side="left")
+                 font=("Cambria", 12, "bold")).pack(side="left")
         tk.Label(title_row, text="LATEST EVENTS", bg="#121b2e", fg="#8fa1bd",
-                 font=("Segoe UI", 8, "bold")).pack(side="right", pady=3)
+                 font=("Cambria", 8, "bold")).pack(side="right", pady=3)
 
         area = tk.Frame(right_panel, bg="#121b2e")
         area.pack(fill="both", expand=True)
@@ -227,7 +228,7 @@ class NoOneApp:
 
         footer = tk.Label(self.root,
             text="Powered by ClamAV. A clean result is not a guarantee that a file or computer is safe.",
-            bg="#0b1020", fg="#8294ae", font=("Segoe UI", 8))
+            bg="#0b1020", fg="#8294ae", font=("Cambria", 8))
         footer.pack(anchor="w", padx=27, pady=(0, 12))
 
     def _metric(self, parent: ttk.Frame, title: str, value: str, col: int) -> ttk.Label:
