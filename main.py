@@ -138,7 +138,7 @@ class NoOneApp:
 
         hero = tk.Frame(self.root, bg="#13233a", padx=24, pady=20)
         hero.pack(fill="x", padx=24, pady=(0, 18))
-        tk.Label(hero, text="Your files. Watched by NO.1.", bg="#13233a", fg="#ffffff",
+        tk.Label(hero, text="Independent scanning for your files.", bg="#13233a", fg="#ffffff",
                  font=("Segoe UI", 20, "bold")).pack(anchor="w")
         tk.Label(hero, text="Independent static scanning and watched-folder monitoring. No external antivirus engine.",
                  bg="#13233a", fg="#a9bdd8", font=("Segoe UI", 10)).pack(anchor="w", pady=(5, 0))
@@ -149,7 +149,7 @@ class NoOneApp:
         metrics.pack(fill="x", padx=24, pady=(0, 18))
         self.scans_label = self._metric(metrics, "FILES INSPECTED", "0", 0)
         self.alerts_label = self._metric(metrics, "WARNINGS", "0", 1)
-        self.folders_label = self._metric(metrics, "PROTECTED FOLDERS", "0", 2)
+        self.folders_label = self._metric(metrics, "WATCHED FOLDERS", "0", 2)
 
         content = tk.Frame(self.root, bg="#0b1020")
         content.pack(fill="both", expand=True, padx=24, pady=(0, 16))
