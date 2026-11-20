@@ -8,8 +8,8 @@ class PlatformSupportTests(unittest.TestCase):
 
     def test_no_external_antivirus_dependency(self):
         summary = capability_summary()
-        self.assertEqual(summary["external_antivirus"], "Not used by NO.1")
-        self.assertIn("NO.1 built-in", summary["engine"])
+        self.assertEqual(summary["external_antivirus"], "ClamAV is the scanning engine")
+        self.assertIn("ClamAV", summary["engine"])
 
 
 if __name__ == "__main__":
