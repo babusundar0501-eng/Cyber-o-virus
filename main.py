@@ -16,7 +16,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from ioc_engine import match_indicators
-from family_engines import ENGINE_INFO, run_family_engines
+from family_engines import EICAR, ENGINE_INFO, run_family_engines
 from platform_support import capability_summary
 from quarantine import quarantine_file, restore_file
 
