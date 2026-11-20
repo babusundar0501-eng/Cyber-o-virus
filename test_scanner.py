@@ -1,74 +1,90 @@
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from main import inspect_file
+from clamav_engine import inspect_file, scan_with_clamav
 
 
-class InspectFileTests(unittest.TestCase):
+class ClamAVScannerTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        self.sample = self.root / "sample.txt"
+        self.sample.write_text("harmless test content", encoding="utf-8")
 
-    def test_ordinary_text_has_no_match_and_hash(self):
-        path = self.root / "notes.txt"
-        path.write_text("hello NO.1", encoding="utf-8")
-        status, findings, digest = inspect_file(path)
+    @patch("clamav_engine.find_clamscan", return_value=None)
+    def test_missing_clamav_is_an_error_not_a_fake_clean_scan(self, _find):
+        code, infected, diagnostic = scan_with_clamav([self.sample])
+        self.assertEqual(code, 2)
+        self.assertEqual(infected, [])
+        self.assertIn("ClamAV was not found", diagnostic)
+
+    @patch("clamav_engine.find_clamscan", return_value="/usr/bin/clamscan")
+    @patch("clamav_engine.subprocess.run")
+    def test_clean_scan_uses_clamav(self, run, _find):
+        run.return_value = SimpleNamespace(returncode=0, stdout="")
+        status, findings, digest = inspect_file(self.sample)
         self.assertEqual(status, "NO MATCH*")
         self.assertEqual(findings, [])
-        self.assertEqual(len(digest), 64)
+        self.assertEqual(digest, "")
+        command = run.call_args.args[0]
+        self.assertEqual(command[0], "/usr/bin/clamscan")
+        self.assertIn("--infected", command)
+        self.assertNotIn("--recursive", command)
 
-    def test_script_extension_alone_is_not_flagged(self):
-        path = self.root / "script.ps1"
-        path.write_text("Write-Output 'hello'", encoding="utf-8")
-        status, findings, _ = inspect_file(path)
-        self.assertEqual(status, "NO MATCH*")
-        self.assertEqual(findings, [])
-
-    def test_double_extension_is_flagged_as_heuristic(self):
-        path = self.root / "photo.jpg.exe"
-        path.write_bytes(b"test")
-        status, findings, _ = inspect_file(path)
+    @patch("clamav_engine.find_clamscan", return_value="/usr/bin/clamscan")
+    @patch("clamav_engine.subprocess.run")
+    def test_infected_file_is_reported_as_warning(self, run, _find):
+        run.return_value = SimpleNamespace(
+            returncode=1, stdout=f"{self.sample}: Win.Test.EICAR FOUND\n"
+        )
+        status, findings, _ = inspect_file(self.sample)
         self.assertEqual(status, "WARNING")
-        self.assertTrue(any("Double extension" in item for item in findings))
+        self.assertIn("EICAR FOUND", findings[0])
 
-    def test_encoded_powershell_pattern_is_flagged(self):
-        path = self.root / "script.ps1"
-        path.write_bytes(b"powershell.exe -EncodedCommand AAAA")
-        status, findings, _ = inspect_file(path)
-        self.assertEqual(status, "WARNING")
-        self.assertTrue(any("Encoded PowerShell" in item for item in findings))
-
-    def test_pe_bytes_disguised_as_pdf_are_flagged(self):
-        path = self.root / "invoice.pdf"
-        path.write_bytes(b"MZ" + b"\x00" * 100)
-        status, findings, _ = inspect_file(path)
-        self.assertEqual(status, "WARNING")
-        self.assertTrue(any("Windows PE-style" in item for item in findings))
-
-    def test_missing_file_returns_error(self):
-        status, findings, digest = inspect_file(self.root / "missing.txt")
+    @patch("clamav_engine.find_clamscan", return_value="/usr/bin/clamscan")
+    @patch("clamav_engine.subprocess.run")
+    def test_clamav_error_is_not_reported_as_clean(self, run, _find):
+        run.return_value = SimpleNamespace(returncode=2, stdout="ERROR: Permission denied")
+        status, findings, _ = inspect_file(self.sample)
         self.assertEqual(status, "ERROR")
-        self.assertTrue(findings)
-        self.assertEqual(digest, "")
+        self.assertIn("Permission denied", findings[0])
 
-    def test_base64_decoder_pattern_is_flagged(self):
-        path = self.root / "script.ps1"
-        path.write_bytes(b"[Convert]::FromBase64String('AAAA')")
-        status, findings, _ = inspect_file(path)
-        self.assertEqual(status, "WARNING")
-        self.assertTrue(any("Base64-decoding" in item for item in findings))
+    @patch("clamav_engine.find_clamscan", return_value="/usr/bin/clamscan")
+    @patch("clamav_engine.subprocess.run")
+    def test_folder_scan_is_recursive(self, run, _find):
+        run.return_value = SimpleNamespace(returncode=0, stdout="")
+        code, infected, _ = scan_with_clamav([self.root], recursive=True)
+        self.assertEqual(code, 0)
+        self.assertEqual(infected, [])
+        self.assertIn("--recursive", run.call_args.args[0])
 
-    def test_file_over_scan_limit_is_skipped(self):
-        path = self.root / "large.bin"
-        path.write_bytes(b"1234")
-        with patch("main.MAX_FILE_BYTES", 3):
-            status, findings, digest = inspect_file(path)
+    def test_missing_path_returns_error(self):
+        code, infected, diagnostic = scan_with_clamav([self.root / "missing"])
+        self.assertEqual(code, 2)
+        self.assertEqual(infected, [])
+        self.assertIn("No selected scan locations exist", diagnostic)
+
+    @patch("clamav_engine.find_clamscan", return_value="/usr/bin/clamscan")
+    @patch("clamav_engine.subprocess.run", side_effect=OSError("cannot execute"))
+    def test_process_launch_failure_is_reported(self, _run, _find):
+        code, infected, diagnostic = scan_with_clamav([self.sample])
+        self.assertEqual(code, 2)
+        self.assertEqual(infected, [])
+        self.assertIn("cannot execute", diagnostic)
+
+    def test_symbolic_link_is_not_followed(self):
+        link = self.root / "linked.txt"
+        try:
+            link.symlink_to(self.sample)
+        except (OSError, NotImplementedError):
+            self.skipTest("Symbolic links are unavailable on this system")
+        status, findings, _ = inspect_file(link)
         self.assertEqual(status, "SKIPPED")
-        self.assertTrue(any("safety limit" in item for item in findings))
-        self.assertEqual(digest, "")
+        self.assertIn("Symbolic links", findings[0])
 
 
 if __name__ == "__main__":
