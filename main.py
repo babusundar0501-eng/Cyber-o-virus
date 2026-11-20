@@ -1,7 +1,4 @@
-"""NO.1 AntiVirus — experimental cross-platform security research tool.
-
-Uses NO.1's own Python detection checks; no external antivirus engine is called.
-"""
+"""NO.1 AntiVirus — ClamAV-powered cross-platform desktop scanner."""
 from __future__ import annotations
 
 import os
@@ -45,6 +42,10 @@ class NoOneApp:
         self.engine_labels: dict[str, ttk.Label] = {}
         self._style()
         self._build()
+        if find_clamscan():
+            self.clamav_status.configure(text="ClamAV detected · ready to scan", fg="#72d6ad")
+        else:
+            self.clamav_status.configure(text="ClamAV not found · install ClamAV to enable scanning", fg="#ff9b9b")
         self.root.after(150, self._drain_events)
         self.root.protocol("WM_DELETE_WINDOW", self._close)
 
@@ -190,8 +191,16 @@ class NoOneApp:
 
     def _quick_targets(self) -> list[Path]:
         home = Path.home()
-        names = ("Desktop", "Downloads", "Documents")
-        return [home / name for name in names if (home / name).is_dir()]
+        names = ("Desktop", "Downloads", "Documents", "Pictures", "Videos")
+        candidates = [base / name for base in (home, home / "OneDrive") for name in names]
+        found: list[Path] = []
+        seen: set[str] = set()
+        for folder in candidates:
+            key = os.path.normcase(str(folder))
+            if folder.is_dir() and key not in seen:
+                found.append(folder)
+                seen.add(key)
+        return found
 
     def _pc_targets(self) -> list[Path]:
         if os.name == "nt":
